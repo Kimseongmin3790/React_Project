@@ -6,6 +6,7 @@ import FeedPage from "./pages/FeedPage";
 import CreatePostPage from "./pages/CreatePostPage";
 import PostDetailPage from "./pages/PostDetailPage";
 import ProfilePage from "./pages/ProfilePage";
+import ChatPage from "./pages/ChatPage";
 import { AuthProvider, RequireAuth } from "./context/AuthContext";
 
 function App() {
@@ -39,6 +40,13 @@ function App() {
           <Route path="/me" element={
             <RequireAuth>
               <ProfilePage />
+            </RequireAuth>
+          }
+          />
+
+          <Route path="/chat" element={
+            <RequireAuth>
+              <ChatPage />
             </RequireAuth>
           }
           />

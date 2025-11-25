@@ -18,6 +18,8 @@ import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import {
   fetchPost,
   fetchComments,
@@ -47,6 +49,8 @@ function PostDetailDialog({ open, onClose, postId }) {
   const [commentInput, setCommentInput] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
 
+  const [mediaIndex, setMediaIndex] = useState(0);
+
   // 모달 열릴 때마다 데이터 로딩
   useEffect(() => {
     if (!open || !postId) return;
@@ -57,6 +61,7 @@ function PostDetailDialog({ open, onClose, postId }) {
         setPostError("");
         const p = await fetchPost(postId);
         setPost(p);
+        setMediaIndex(0);
       } catch (err) {
         console.error("게시글 상세 불러오기 실패:", err);
         setPostError("게시글을 불러오는 중 오류가 발생했습니다.");
@@ -146,6 +151,20 @@ function PostDetailDialog({ open, onClose, postId }) {
     }
   };
 
+  const handlePrevMedia = () => {
+    if (!post || !post.media || post.media.length === 0) return;
+    setMediaIndex((prev) =>
+        prev === 0 ? post.media.length - 1 : prev - 1
+    );
+  };
+
+    const handleNextMedia = () => {
+    if (!post || !post.media || post.media.length === 0) return;
+    setMediaIndex((prev) =>
+        prev === post.media.length - 1 ? 0 : prev + 1
+    );
+  };
+
   const liked = !!post?.isLiked;
   const bookmarked = !!post?.isBookmarked;
 
@@ -198,27 +217,86 @@ function PostDetailDialog({ open, onClose, postId }) {
 
             {/* 이미지/영상 전체 */}
             {post.media && post.media.length > 0 && (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 1.5,
-                }}
-              >
-                {post.media.map((m) => (
-                  <CardMedia
-                    key={m.id}
-                    component={m.mediaType === "VIDEO" ? "video" : "img"}
-                    src={getMediaUrl(m.url)}
-                    controls={m.mediaType === "VIDEO"}
-                    sx={{ maxHeight: 500, borderRadius: 1 }}
-                  />
-                ))}
+              <Box sx={{ position: "relative", mb: 2 }}>
+                {/* 현재 선택된 한 장만 보여주기 */}
+                <CardMedia
+                component={
+                    post.media[mediaIndex].mediaType === "VIDEO" ? "video" : "img"
+                }
+                src={getMediaUrl(post.media[mediaIndex].url)}
+                controls={post.media[mediaIndex].mediaType === "VIDEO"}
+                sx={{ maxHeight: 500, borderRadius: 1 }}
+                />
+
+                {/* 여러 장일 때만 화살표 / 인디케이터 표시 */}
+                {post.media.length > 1 && (
+                  <>
+                    {/* 왼쪽 화살표 */}
+                    <IconButton
+                      onClick={handlePrevMedia}
+                      sx={{
+                          position: "absolute",
+                          top: "50%",
+                          left: 8,
+                          transform: "translateY(-50%)",
+                          bgcolor: "rgba(0,0,0,0.4)",
+                          "&:hover": {
+                          bgcolor: "rgba(0,0,0,0.6)",
+                          },
+                      }}
+                    >
+                      <ChevronLeftIcon sx={{ color: "#fff" }} />
+                    </IconButton>
+
+                    {/* 오른쪽 화살표 */}
+                    <IconButton
+                      onClick={handleNextMedia}
+                      sx={{
+                          position: "absolute",
+                          top: "50%",
+                          right: 8,
+                          transform: "translateY(-50%)",
+                          bgcolor: "rgba(0,0,0,0.4)",
+                          "&:hover": {
+                          bgcolor: "rgba(0,0,0,0.6)",
+                          },
+                      }}
+                    >
+                      <ChevronRightIcon sx={{ color: "#fff" }} />
+                    </IconButton>
+
+                    {/* 아래쪽 인디케이터 (1 / N) */}
+                    <Box
+                      sx={{
+                          position: "absolute",
+                          bottom: 8,
+                          right: 12,
+                          bgcolor: "rgba(0,0,0,0.6)",
+                          color: "#fff",
+                          borderRadius: 999,
+                          px: 1.2,
+                          py: 0.3,
+                          fontSize: "0.75rem",
+                      }}
+                    >
+                      {mediaIndex + 1} / {post.media.length}
+                    </Box>
+                  </>
+                )}
               </Box>
             )}
 
             {/* 캡션 */}
-            <Typography variant="body1">{post.caption}</Typography>
+            <Typography
+            variant="body1"
+            sx={{
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                overflowWrap: "anywhere",
+            }}
+            >
+            {post.caption}
+            </Typography>
 
             {/* 좋아요 / 북마크 / 댓글 수 */}
             <Box
@@ -282,7 +360,14 @@ function PostDetailDialog({ open, onClose, postId }) {
                     >
                       {c.nickname || c.username}
                     </Typography>
-                    <Typography variant="body2" sx={{ lineHeight: 1.4 }}>
+                    <Typography variant="body2" 
+                    sx={{ 
+                        lineHeight: 1.4,
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                        overflowWrap: "anywhere", 
+                    }}
+                    >
                       {c.content}
                     </Typography>
                     <Typography

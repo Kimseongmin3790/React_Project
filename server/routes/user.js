@@ -2,6 +2,7 @@ const express = require('express')
 const bcrypt = require('bcrypt')
 const router = express.Router()
 const db = require("../db")
+const authMiddleware = require("../middleware/auth");
 
 router.post('/join', async (req, res) => {
     let { userId, pwd, userName } = req.body
@@ -50,5 +51,36 @@ router.post('/login', async (req, res) => {
         console.log("에러 발생!");
     }
 })
+
+// GET /api/users/search?q=검색어
+router.get("/search", authMiddleware, async (req, res) => {
+  const q = (req.query.q || "").trim();
+  if (!q) {
+    return res.json({ users: [] });
+  }
+
+  try {
+    const like = `%${q}%`;
+    const [rows] = await db.query(
+      `
+      SELECT
+        id,
+        username,
+        nickname,
+        avatar_url AS avatarUrl
+      FROM users
+      WHERE username LIKE ? OR nickname LIKE ?
+      ORDER BY nickname IS NULL, nickname, username
+      LIMIT 20
+      `,
+      [like, like]
+    );
+
+    res.json({ users: rows });
+  } catch (err) {
+    console.error("GET /api/users/search error:", err);
+    res.status(500).json({ message: "사용자 검색 중 오류가 발생했습니다." });
+  }
+});
 
 module.exports = router;
