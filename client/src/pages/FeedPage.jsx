@@ -11,17 +11,28 @@ import {
   CardContent,
   CardMedia,
   TextField,
-  MenuItem
+  MenuItem,
+  Button
 } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+import BookmarkIcon from "@mui/icons-material/Bookmark";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { fetchFeed, fetchGameList, likePost, unlikePost } from "../api/postApi";
+import { 
+  fetchFeed, 
+  fetchGameList, 
+  likePost, 
+  unlikePost, 
+  bookmarkPost, 
+  unbookmarkPost
+} from "../api/postApi";
+import PostDetailDialog from "../components/post/postDetail";
 
 function FeedPage() {
   const { user, logout } = useAuth();
@@ -33,6 +44,19 @@ function FeedPage() {
   const [selectedGameId, setSelectedGameId] = useState("");
 
   const navigate = useNavigate();
+
+  const [detailPostId, setDetailPostId] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const openDetail = (postId) => {
+    setDetailPostId(postId);
+    setDetailOpen(true);
+  };
+
+  const closeDetail = () => {
+    setDetailOpen(false);
+    setDetailPostId(null);
+  };
 
   useEffect(() => {
     async function loadGames() {
@@ -90,28 +114,51 @@ function FeedPage() {
   }
 
   const handleToggleLike = async (postId, currentIsLiked) => {
-  try {
-    // optimistic UI 적용하려면 여기서 먼저 setPosts 해도 됨. 일단 서버 기준으로 갈게.
-    let result;
-    if (currentIsLiked) {
-      result = await unlikePost(postId);
-    } else {
-      result = await likePost(postId);
+    try {
+      // optimistic UI 적용하려면 여기서 먼저 setPosts 해도 됨. 일단 서버 기준으로 갈게.
+      let result;
+      if (currentIsLiked) {
+        result = await unlikePost(postId);
+      } else {
+        result = await likePost(postId);
+      }
+
+      const { liked, likeCount } = result;
+
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, isLiked: liked ? 1 : 0, likeCount }
+            : p
+        )
+      );
+    } catch (err) {
+      console.error("좋아요 토글 실패:", err);
     }
+  };
 
-    const { liked, likeCount } = result;
+  const handleToggleBookmark = async (postId, currentIsBookmarked) => {
+    try {
+      let result;
+      if (currentIsBookmarked) {
+        result = await unbookmarkPost(postId);
+      } else {
+        result = await bookmarkPost(postId);
+      }
 
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === postId
-          ? { ...p, isLiked: liked ? 1 : 0, likeCount }
-          : p
-      )
-    );
-  } catch (err) {
-    console.error("좋아요 토글 실패:", err);
-  }
-};
+      const { bookmarked } = result;
+
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, isBookmarked: bookmarked ? 1 : 0 }
+            : p
+        )
+      );
+    } catch (err) {
+      console.error("북마크 토글 실패:", err);
+    }
+  };
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#fafafa" }}>
@@ -133,8 +180,9 @@ function FeedPage() {
               {user ? user.nickname || user.username : ""}
             </Typography>
             <Avatar
-              sx={{ width: 32, height: 32 }}
+              sx={{ width: 32, height: 32, cursor: "pointer" }}
               src={user?.avatarUrl || ""}
+              onClick={() => navigate("/me")}
             >
               {user?.nickname?.[0] || user?.username?.[0] || "G"}
             </Avatar>
@@ -191,6 +239,7 @@ function FeedPage() {
 
         {posts.map((post) => {
           const liked = !!post.isLiked;
+          const bookmarked = !!post.isBookmarked;
 
           return (
             <Card key={post.id}>
@@ -214,27 +263,64 @@ function FeedPage() {
                   {post.caption}
                 </Typography>
 
-                {/* 좋아요 영역 */}
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                {/* 액션 영역 */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {/* 좋아요 */}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleToggleLike(post.id, liked)}
+                    >
+                      {liked ? (
+                        <FavoriteIcon color="error" fontSize="small" />
+                      ) : (
+                        <FavoriteBorderIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                    <Typography variant="body2">
+                      {post.likeCount ?? 0}
+                    </Typography>
+                  </Box>
+
+                  {/* 북마크 */}
                   <IconButton
                     size="small"
-                    onClick={() => handleToggleLike(post.id, liked)}
+                    onClick={() => handleToggleBookmark(post.id, bookmarked)}
                   >
-                    {liked ? (
-                      <FavoriteIcon color="error" fontSize="small" />
+                    {bookmarked ? (
+                      <BookmarkIcon fontSize="small" />
                     ) : (
-                      <FavoriteBorderIcon fontSize="small" />
+                      <BookmarkBorderIcon fontSize="small" />
                     )}
                   </IconButton>
-                  <Typography variant="body2">
-                    {post.likeCount ?? 0}
-                  </Typography>
                 </Box>
+
+                {/* 댓글 토글 버튼 */}
+                <Typography
+                  variant="body2"
+                  sx={{ mt: 1, cursor: "pointer", color: "text.secondary" }}
+                  onClick={() => openDetail(post.id)}
+                >
+                  댓글 {post.commentCount ?? 0}개 보기
+                </Typography>
+
+                <Button
+                  size="small"
+                  sx={{ mt: 1 }}
+                  onClick={() => openDetail(post.id)}
+                >
+                  자세히 보기
+                </Button>
               </CardContent>
             </Card>
           );
         })}
       </Container>
+      <PostDetailDialog
+        open={detailOpen}
+        onClose={closeDetail}
+        postId={detailPostId}
+      />
     </Box>
   );
 }

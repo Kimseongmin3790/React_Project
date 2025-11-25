@@ -4,6 +4,8 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import FeedPage from "./pages/FeedPage";
 import CreatePostPage from "./pages/CreatePostPage";
+import PostDetailPage from "./pages/PostDetailPage";
+import ProfilePage from "./pages/ProfilePage";
 import { AuthProvider, RequireAuth } from "./context/AuthContext";
 
 function App() {
@@ -23,6 +25,20 @@ function App() {
           <Route path="/create" element={
             <RequireAuth>
               <CreatePostPage />
+            </RequireAuth>
+          }
+          />
+
+          <Route path="/posts/:postId" element={
+            <RequireAuth>
+              <PostDetailPage />
+            </RequireAuth>
+          }
+          />
+
+          <Route path="/me" element={
+            <RequireAuth>
+              <ProfilePage />
             </RequireAuth>
           }
           />

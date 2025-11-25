@@ -64,3 +64,38 @@ export async function unlikePost(postId) {
   const res = await api.delete(`/posts/${postId}/like`);
   return res.data; // { liked: false, likeCount }
 }
+
+export async function bookmarkPost(postId) {
+  const res = await api.post(`/posts/${postId}/bookmark`);
+  return res.data; // { bookmarked: true }
+}
+
+export async function unbookmarkPost(postId) {
+  const res = await api.delete(`/posts/${postId}/bookmark`);
+  return res.data; // { bookmarked: false }
+}
+
+export async function fetchComments(postId) {
+  const res = await api.get(`/posts/${postId}/comments`);
+  return res.data.comments || [];
+}
+
+export async function createComment(postId, content) {
+  const res = await api.post(`/posts/${postId}/comments`, { content });
+  return res.data; // 새로 생성된 댓글 객체
+}
+
+export async function fetchPost(postId) {
+  const res = await api.get(`/posts/${postId}`);
+  return res.data.post; // { id, gameName, media: [...], ... }
+}
+
+export async function fetchMyPosts({ page = 1, limit = 10 } = {}) {
+  const res = await api.get("/posts/my", { params: { page, limit } });
+  return res.data; // { page, limit, posts }
+}
+
+export async function fetchMyBookmarkedPosts({ page = 1, limit = 10 } = {}) {
+  const res = await api.get("/posts/bookmarks", { params: { page, limit } });
+  return res.data; // { page, limit, posts }
+}

@@ -208,3 +208,215 @@ exports.unlikePost = async (req, res) => {
     conn.release();
   }
 };
+
+exports.bookmarkPost = async (req, res) => {
+  const user = req.user;
+  if (!user) {
+    return res.status(401).json({ message: "인증이 필요합니다." });
+  }
+
+  const postId = Number.parseInt(req.params.postId, 10);
+  if (!postId) {
+    return res.status(400).json({ message: "잘못된 게시글입니다." });
+  }
+
+  try {
+    await pool.execute(
+      `INSERT IGNORE INTO post_bookmarks (post_id, user_id)
+       VALUES (?, ?)`,
+      [postId, user.id]
+    );
+
+    res.json({ bookmarked: true });
+  } catch (err) {
+    console.error("bookmarkPost error:", err);
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+exports.unbookmarkPost = async (req, res) => {
+  const user = req.user;
+  if (!user) {
+    return res.status(401).json({ message: "인증이 필요합니다." });
+  }
+
+  const postId = Number.parseInt(req.params.postId, 10);
+  if (!postId) {
+    return res.status(400).json({ message: "잘못된 게시글입니다." });
+  }
+
+  try {
+    await pool.execute(
+      `DELETE FROM post_bookmarks
+       WHERE post_id = ? AND user_id = ?`,
+      [postId, user.id]
+    );
+
+    res.json({ bookmarked: false });
+  } catch (err) {
+    console.error("unbookmarkPost error:", err);
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+exports.getComments = async (req, res) => {
+  try {
+    const postId = Number.parseInt(req.params.postId, 10);
+    if (!postId) {
+      return res.status(400).json({ message: "잘못된 게시글입니다." });
+    }
+
+    const [rows] = await pool.execute(
+      `
+      SELECT
+        c.id,
+        c.post_id AS postId,
+        c.user_id AS userId,
+        c.content,
+        c.created_at AS createdAt,
+        u.username,
+        u.nickname,
+        u.avatar_url AS avatarUrl
+      FROM post_comments c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.post_id = ?
+      ORDER BY c.created_at ASC
+      `,
+      [postId]
+    );
+
+    res.json({ comments: rows });
+  } catch (err) {
+    console.error("getComments error:", err);
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+exports.createComment = async (req, res) => {
+  const user = req.user;
+  if (!user) {
+    return res.status(401).json({ message: "인증이 필요합니다." });
+  }
+
+  const postId = Number.parseInt(req.params.postId, 10);
+  const { content } = req.body;
+
+  if (!postId) {
+    return res.status(400).json({ message: "잘못된 게시글입니다." });
+  }
+  if (!content || !content.trim()) {
+    return res.status(400).json({ message: "댓글 내용을 입력해주세요." });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // 1) 댓글 INSERT
+    const [result] = await conn.execute(
+      `
+      INSERT INTO post_comments (post_id, user_id, content)
+      VALUES (?, ?, ?)
+      `,
+      [postId, user.id, content.trim()]
+    );
+    const commentId = result.insertId;
+
+    // 2) posts.comment_count 증가
+    await conn.execute(
+      `
+      UPDATE posts
+      SET comment_count = comment_count + 1
+      WHERE id = ?
+      `,
+      [postId]
+    );
+
+    await conn.commit();
+
+    // 프론트에서 바로 쓸 수 있게 작성자 정보 포함해서 리턴
+    res.status(201).json({
+      id: commentId,
+      postId,
+      userId: user.id,
+      username: user.username,
+      nickname: user.nickname,
+      avatarUrl: user.avatarUrl,
+      content: content.trim(),
+      createdAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("createComment error:", err);
+    await conn.rollback();
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  } finally {
+    conn.release();
+  }
+};
+
+exports.getPostDetail = async (req, res) => {
+  try {
+    const postId = Number.parseInt(req.params.postId, 10);
+    if (!postId) {
+      return res.status(400).json({ message: "잘못된 게시글입니다." });
+    }
+
+    const currentUserId = req.user?.id || null;
+
+    const post = await postModel.getPostById({ postId, currentUserId });
+    if (!post) {
+      return res.status(404).json({ message: "게시글을 찾을 수 없습니다." });
+    }
+
+    res.json({ post });
+  } catch (err) {
+    console.error("getPostDetail error:", err);
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+exports.getMyPosts = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "인증이 필요합니다." });
+    }
+
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = Number.parseInt(req.query.limit, 10) || 10;
+
+    const posts = await postModel.getMyPosts({
+      userId: user.id,
+      page,
+      limit,
+    });
+
+    res.json({ page, limit, posts });
+  } catch (err) {
+    console.error("getMyPosts error:", err);
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+exports.getMyBookmarkedPosts = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "인증이 필요합니다." });
+    }
+
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = Number.parseInt(req.query.limit, 10) || 10;
+
+    const posts = await postModel.getMyBookmarkedPosts({
+      userId: user.id,
+      page,
+      limit,
+    });
+
+    res.json({ page, limit, posts });
+  } catch (err) {
+    console.error("getMyBookmarkedPosts error:", err);
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
+};
