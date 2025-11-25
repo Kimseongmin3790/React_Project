@@ -30,7 +30,10 @@ module.exports = async function auth(req, res, next) {
 
     next();
   } catch (err) {
-    console.error('auth middleware error:', err);
+    if (err.name !== 'JsonWebTokenError' && err.name !== 'TokenExpiredError') {
+      console.error('auth middleware error:', err);
+    }
+    
     return res.status(401).json({ message: '토큰이 유효하지 않습니다.' });
   }
 };

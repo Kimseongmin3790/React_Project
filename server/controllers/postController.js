@@ -1,89 +1,101 @@
-// server/src/controllers/postController.js
 const postModel = require('../models/postModel');
+const pool = require("../db");
+const gameModel = require('../models/gameModel');
 
-// 게시글 생성 (이미지는 multer로 미리 저장되어 있다고 가정)
 exports.createPost = async (req, res) => {
+  const conn = await pool.getConnection();
   try {
-    const userId = req.user.id; // auth 미들웨어에서 넣어준 값
-    const { gameName, caption } = req.body;
-
-    // multer 사용 시, 업로드된 파일 정보는 req.file 또는 req.files에 있음
-    // 여기서는 단일 이미지만 받는다고 가정
-    if (!req.file) {
-      return res.status(400).json({ message: '이미지 파일이 필요합니다.' });
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: "인증이 필요합니다." });
     }
 
-    const imageUrl = `/uploads/${req.file.filename}`; // 정적 경로 규칙에 맞게 설정
-
-    if (!gameName) {
-      return res.status(400).json({ message: '게임 이름은 필수입니다.' });
+    const { gameId, caption } = req.body;
+    const gameIdNum = Number.parseInt(gameId, 10);
+    if (!gameIdNum) {
+      return res.status(400).json({ message: "유효한 게임을 선택해주세요." });
     }
 
-    const postId = await postModel.createPost({
-      userId,
-      gameName,
-      caption: caption || '',
-      imageUrl,
-    });
+    const game = await gameModel.findById(gameIdNum);
+    if (!game) {
+      return res.status(400).json({ message: "존재하지 않는 게임입니다." });
+    }
 
-    const post = await postModel.getPostById(postId);
+    const files = req.files || {};
+    const imageFiles = files.images || [];
+    const videoFiles = files.videos || [];
 
+    await conn.beginTransaction();
+
+    // 1) posts INSERT
+    const [result] = await conn.execute(
+      `INSERT INTO posts (user_id, game_id, caption)
+       VALUES (?, ?, ?)`,
+      [user.id, gameIdNum, caption || ""]
+    );
+    const postId = result.insertId;
+
+    // 2) post_media INSERT (이미지 먼저, 그 다음 영상)
+    let sortOrder = 0;
+
+    for (const file of imageFiles) {
+      const url = `/uploads/${file.filename}`;
+      await conn.execute(
+        `INSERT INTO post_media (post_id, media_type, url, sort_order)
+         VALUES (?, 'IMAGE', ?, ?)`,
+        [postId, url, sortOrder++]
+      );
+    }
+
+    for (const file of videoFiles) {
+      const url = `/uploads/${file.filename}`;
+      await conn.execute(
+        `INSERT INTO post_media (post_id, media_type, url, sort_order)
+         VALUES (?, 'VIDEO', ?, ?)`,
+        [postId, url, sortOrder++]
+      );
+    }
+
+    await conn.commit();
+
+    // 간단 응답
     res.status(201).json({
-      message: '게시글이 등록되었습니다.',
-      post,
+      message: "게시글이 등록되었습니다.",
+      post: {
+        id: postId,
+        userId: user.id,
+        username: user.username,
+        nickname: user.nickname,
+        avatarUrl: user.avatarUrl,
+        gameId: game.id,
+        gameName: game.name,
+        gameSlug: game.slug,
+        caption,
+        likeCount: 0,
+        commentCount: 0,
+        createdAt: new Date().toISOString(),
+      },
     });
   } catch (err) {
-    console.error('createPost error:', err);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    console.error("createPost error:", err);
+    await conn.rollback();
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  } finally {
+    conn.release();
   }
 };
 
-// 게시글 단건 조회
-exports.getPost = async (req, res) => {
-  try {
-    const postId = req.params.id;
-    const post = await postModel.getPostById(postId);
-
-    if (!post) {
-      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
-    }
-
-    res.json(post);
-  } catch (err) {
-    console.error('getPost error:', err);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
-  }
-};
-
-// 피드 목록 조회 (최신순)
+// GET /api/posts  (피드 조회: 로그인 여부와 상관 없이 전체 피드)
 exports.getFeed = async (req, res) => {
   try {
-    const page = parseInt(req.query.page || '1', 10);
-    const limit = parseInt(req.query.limit || '10', 10);
-    const offset = (page - 1) * limit;
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const limit = Number.parseInt(req.query.limit, 10) || 10;
 
-    const posts = await postModel.getPostFeed({ limit, offset });
+    const gameId = req.query.gameId ? Number.parseInt(req.query.gameId, 10) : null;
 
-    res.json({
-      page,
-      limit,
-      posts,
-    });
-  } catch (err) {
-    console.error('getFeed error:', err);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
-  }
-};
+    const currentUserId = req.user?.id || null;
 
-// 특정 유저의 게시글 목록
-exports.getUserPosts = async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    const page = parseInt(req.query.page || '1', 10);
-    const limit = parseInt(req.query.limit || '12', 10);
-    const offset = (page - 1) * limit;
-
-    const posts = await postModel.getPostsByUserId(userId, { limit, offset });
+    const posts = await postModel.getFeed({ page, limit, gameId, currentUserId });
 
     res.json({
       page,
@@ -91,36 +103,108 @@ exports.getUserPosts = async (req, res) => {
       posts,
     });
   } catch (err) {
-    console.error('getUserPosts error:', err);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    console.error("getFeed error:", err);
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
   }
 };
 
-// 게시글 삭제 (작성자 본인만)
-exports.deletePost = async (req, res) => {
+exports.likePost = async (req, res) => {
+  const user = req.user;
+  if (!user) {
+    return res.status(401).json({ message: "인증이 필요합니다." });
+  }
+
+  const postId = Number.parseInt(req.params.postId, 10);
+  if (!postId) {
+    return res.status(400).json({ message: "잘못된 게시글입니다." });
+  }
+
+  const conn = await pool.getConnection();
   try {
-    const postId = req.params.id;
-    const userId = req.user.id;
+    await conn.beginTransaction();
 
-    // 먼저 게시글 조회
-    const post = await postModel.getPostById(postId);
-    if (!post) {
-      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+    // 이미 좋아요 되어있는지 확인
+    const [exists] = await conn.execute(
+      `SELECT 1 FROM post_likes WHERE post_id = ? AND user_id = ?`,
+      [postId, user.id]
+    );
+
+    if (exists.length === 0) {
+      await conn.execute(
+        `INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)`,
+        [postId, user.id]
+      );
+      await conn.execute(
+        `UPDATE posts SET like_count = like_count + 1 WHERE id = ?`,
+        [postId]
+      );
     }
 
-    // 권한 체크: 내 글인지 확인
-    if (post.userId !== userId) {
-      return res.status(403).json({ message: '삭제 권한이 없습니다.' });
-    }
+    const [rows] = await conn.execute(
+      `SELECT like_count FROM posts WHERE id = ?`,
+      [postId]
+    );
+    const likeCount = rows[0]?.like_count ?? 0;
 
-    const deleted = await postModel.deletePost(postId);
-    if (!deleted) {
-      return res.status(500).json({ message: '삭제에 실패했습니다.' });
-    }
+    await conn.commit();
 
-    res.json({ message: '게시글이 삭제되었습니다.' });
+    res.json({ liked: true, likeCount });
   } catch (err) {
-    console.error('deletePost error:', err);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    console.error("likePost error:", err);
+    await conn.rollback();
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  } finally {
+    conn.release();
+  }
+};
+
+exports.unlikePost = async (req, res) => {
+  const user = req.user;
+  if (!user) {
+    return res.status(401).json({ message: "인증이 필요합니다." });
+  }
+
+  const postId = Number.parseInt(req.params.postId, 10);
+  if (!postId) {
+    return res.status(400).json({ message: "잘못된 게시글입니다." });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [exists] = await conn.execute(
+      `SELECT 1 FROM post_likes WHERE post_id = ? AND user_id = ?`,
+      [postId, user.id]
+    );
+
+    if (exists.length > 0) {
+      await conn.execute(
+        `DELETE FROM post_likes WHERE post_id = ? AND user_id = ?`,
+        [postId, user.id]
+      );
+      await conn.execute(
+        `UPDATE posts 
+         SET like_count = GREATEST(like_count - 1, 0)
+         WHERE id = ?`,
+        [postId]
+      );
+    }
+
+    const [rows] = await conn.execute(
+      `SELECT like_count FROM posts WHERE id = ?`,
+      [postId]
+    );
+    const likeCount = rows[0]?.like_count ?? 0;
+
+    await conn.commit();
+
+    res.json({ liked: false, likeCount });
+  } catch (err) {
+    console.error("unlikePost error:", err);
+    await conn.rollback();
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  } finally {
+    conn.release();
   }
 };

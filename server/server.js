@@ -1,11 +1,14 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
 
 const userRouter = require('./routes/user');
 const authRouter = require('./routes/auth');
+const postRouter = require('./routes/post');
+const gameRouter = require('./routes/game');
 
 const app = express();
 
@@ -15,9 +18,13 @@ app.use(cors({
 }));
 app.use(express.json());
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // router 영역
 app.use('/user', userRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/posts', postRouter);
+app.use('/api/games', gameRouter);
 
 // ✅ http 서버로 감싸기
 const server = http.createServer(app);
