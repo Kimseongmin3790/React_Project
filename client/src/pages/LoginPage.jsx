@@ -7,8 +7,12 @@ import {
   Typography,
   Paper,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
-import { login as loginApi } from "../api/authApi";
+import { login as loginApi, resetPassword } from "../api/authApi";
 import { useAuth } from "../context/AuthContext";
 
 function LoginPage() {
@@ -21,6 +25,13 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // 🔐 비밀번호 찾기용 state
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotResult, setForgotResult] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  // 이미 로그인된 상태면 메인으로 리다이렉트
   if (initialized && user) {
     return <Navigate to="/" replace />;
   }
@@ -31,10 +42,8 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await loginApi({ email, password });
-      // data = { message, token, user }
+      const data = await loginApi({ email, password }); // { message, token, user }
       login(data.token, data.user);
-
       navigate("/");
     } catch (err) {
       console.error(err);
@@ -48,6 +57,52 @@ function LoginPage() {
 
   const goRegister = () => {
     navigate("/register");
+  };
+
+  // 🔽 비밀번호 찾기 열기
+  const handleOpenForgot = () => {
+    setForgotEmail(email); // 로그인 폼에 입력한 이메일 기본값으로
+    setForgotResult("");
+    setForgotOpen(true);
+  };
+
+  const handleCloseForgot = () => {
+    setForgotOpen(false);
+  };
+
+  // 🔽 비밀번호 찾기 제출 (임시 비밀번호 발급)
+  const handleSubmitForgot = async () => {
+    if (!forgotEmail.trim()) {
+      setForgotResult("이메일을 입력해주세요.");
+      return;
+    }
+
+    setForgotLoading(true);
+    setForgotResult("");
+
+    try {      
+      const res = await resetPassword(forgotEmail); // { ok, message, tempPassword }
+      if (res.ok) {
+        setForgotResult(
+          `임시 비밀번호: ${res.tempPassword}\n로그인 후 마이페이지에서 비밀번호를 변경해주세요.`
+        );
+      } else {
+        setForgotResult(res.message || "비밀번호 재설정에 실패했습니다.");
+      }
+    } catch (err) {
+      console.error("resetPassword error:", err);
+
+      const status = err.response?.status;
+      const msgFromServer = err.response?.data?.message;
+
+      if (status == 404) {
+        setForgotResult(msgFromServer || "가입되지 않은 이메일입니다.");
+      } else {
+        setForgotResult(msgFromServer || "비밀번호 재설정 중 오류가 발생했습니다.");
+      }
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   return (
@@ -111,6 +166,16 @@ function LoginPage() {
             >
               {loading ? "로그인 중..." : "로그인"}
             </Button>
+
+            {/* 🔽 비밀번호 찾기 버튼 */}
+            <Button
+              variant="text"
+              size="small"
+              onClick={handleOpenForgot}
+              sx={{ textTransform: "none", alignSelf: "flex-end" }}
+            >
+              비밀번호 찾기
+            </Button>
           </Stack>
         </form>
 
@@ -123,6 +188,45 @@ function LoginPage() {
           </Typography>
         </Box>
       </Paper>
+
+      {/* 🔐 비밀번호 찾기 Dialog */}
+      <Dialog open={forgotOpen} onClose={handleCloseForgot} fullWidth maxWidth="xs">
+        <DialogTitle>비밀번호 찾기</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="가입한 이메일"
+              type="email"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              fullWidth
+            />
+            {forgotResult && (
+              <Typography
+                variant="body2"
+                sx={{ whiteSpace: "pre-line" }}
+                color={
+                  forgotResult.startsWith("임시 비밀번호")
+                    ? "primary"
+                    : "error"
+                }
+              >
+                {forgotResult}
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseForgot}>닫기</Button>
+          <Button
+            onClick={handleSubmitForgot}
+            disabled={forgotLoading}
+            variant="contained"
+          >
+            {forgotLoading ? "처리 중..." : "임시 비밀번호 발급"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

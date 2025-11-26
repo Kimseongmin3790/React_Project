@@ -1,9 +1,10 @@
 const postModel = require('../models/postModel');
-const pool = require("../db");
+const db = require("../db");
 const gameModel = require('../models/gameModel');
+const notificationService = require('../services/notificationService');
 
 exports.createPost = async (req, res) => {
-  const conn = await pool.getConnection();
+  const conn = await db.getConnection();
   try {
     const user = req.user;
     if (!user) {
@@ -24,6 +25,10 @@ exports.createPost = async (req, res) => {
     const files = req.files || {};
     const imageFiles = files.images || [];
     const videoFiles = files.videos || [];
+
+    if (imageFiles.length === 0 && videoFiles.length === 0) {
+      return res.status(400).json({ message: "이미지나 동영상을 최소 1개 이상 첨부해주세요" });
+    }
 
     await conn.beginTransaction();
 
@@ -57,6 +62,16 @@ exports.createPost = async (req, res) => {
     }
 
     await conn.commit();
+
+    try {
+      await notificationService.notifyFollowersNewPost({
+        actor: user,
+        postId,
+        caption,
+      });      
+    } catch (notifyErr) {
+      console.error("notifyFollowersNewPost error:", notifyErr);
+    }
 
     // 간단 응답
     res.status(201).json({
@@ -119,7 +134,7 @@ exports.likePost = async (req, res) => {
     return res.status(400).json({ message: "잘못된 게시글입니다." });
   }
 
-  const conn = await pool.getConnection();
+  const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 
@@ -169,7 +184,7 @@ exports.unlikePost = async (req, res) => {
     return res.status(400).json({ message: "잘못된 게시글입니다." });
   }
 
-  const conn = await pool.getConnection();
+  const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 
@@ -221,7 +236,7 @@ exports.bookmarkPost = async (req, res) => {
   }
 
   try {
-    await pool.execute(
+    await db.execute(
       `INSERT IGNORE INTO post_bookmarks (post_id, user_id)
        VALUES (?, ?)`,
       [postId, user.id]
@@ -246,7 +261,7 @@ exports.unbookmarkPost = async (req, res) => {
   }
 
   try {
-    await pool.execute(
+    await db.execute(
       `DELETE FROM post_bookmarks
        WHERE post_id = ? AND user_id = ?`,
       [postId, user.id]
@@ -266,7 +281,7 @@ exports.getComments = async (req, res) => {
       return res.status(400).json({ message: "잘못된 게시글입니다." });
     }
 
-    const [rows] = await pool.execute(
+    const [rows] = await db.execute(
       `
       SELECT
         c.id,
@@ -308,7 +323,7 @@ exports.createComment = async (req, res) => {
     return res.status(400).json({ message: "댓글 내용을 입력해주세요." });
   }
 
-  const conn = await pool.getConnection();
+  const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 

@@ -20,6 +20,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import { useParams, useNavigate } from "react-router-dom";
+import { buildFileUrl } from "../utils/url";
 import {
   fetchPost,
   fetchComments,
@@ -208,7 +209,7 @@ function PostDetailPage() {
                   gap: 1.5,
                 }}
               >
-                <Avatar src={post.avatarUrl || ""}>
+                <Avatar src={buildFileUrl(post.avatarUrl) || ""}>
                   {post.nickname?.[0] || post.username?.[0] || "U"}
                 </Avatar>
                 <Box>

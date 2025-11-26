@@ -35,9 +35,23 @@ export async function login({ email, password }) {
   return res.data;
 }
 
+// 비밀번호 찾기
+export async function resetPassword(email) {
+  const res = await api.post("/auth/reset-password", { email });
+  // 백엔드에서 { ok, message, tempPassword } 형식으로 준다고 가정
+  return res.data;
+}
+
 // 내 정보 가져오기 (토큰 필요)
 export async function getMe() {
   const res = await api.get("/auth/me");
   // res.data = { user }
   return res.data;
+}
+
+export async function checkEmail(email) {
+  const res = await api.get("/auth/check-email", {
+    params: { email },
+  });
+  return res.data; // { available, message }
 }

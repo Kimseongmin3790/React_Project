@@ -5,8 +5,10 @@ import RegisterPage from "./pages/RegisterPage";
 import FeedPage from "./pages/FeedPage";
 import CreatePostPage from "./pages/CreatePostPage";
 import PostDetailPage from "./pages/PostDetailPage";
-import ProfilePage from "./pages/ProfilePage";
 import ChatPage from "./pages/ChatPage";
+import ProfileEditPage from "./pages/ProfileEditPage";
+import MyPage from "./pages/MyPage";
+import GameRankingPage from "./pages/GameRankingPage";
 import { AuthProvider, RequireAuth } from "./context/AuthContext";
 
 function App() {
@@ -37,16 +39,30 @@ function App() {
           }
           />
 
-          <Route path="/me" element={
+          <Route path="/chat" element={
             <RequireAuth>
-              <ProfilePage />
+              <ChatPage />
             </RequireAuth>
           }
           />
 
-          <Route path="/chat" element={
+          <Route path="/me/edit" element={
             <RequireAuth>
-              <ChatPage />
+              <ProfileEditPage />
+            </RequireAuth>
+          }
+          />
+
+          <Route path="/me" element={
+            <RequireAuth>
+              <MyPage />
+            </RequireAuth>
+          }
+          />
+
+          <Route path="/ranking" element={
+            <RequireAuth>
+              <GameRankingPage />
             </RequireAuth>
           }
           />

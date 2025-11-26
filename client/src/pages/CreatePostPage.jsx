@@ -28,6 +28,8 @@ function CreatePostPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const hasMedia = imageFiles.length > 0 || videoFiles.length > 0;
+
   useEffect(() => {
     async function loadGames() {
       try {
@@ -43,15 +45,19 @@ function CreatePostPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (!selectedGameId) {
+      setError("게임을 선택해주세요.");
+      return;
+    }
+
+    if (!hasMedia) {
+      setError("이미지나 동영상을 최소 1개 이상 첨부해주세요");
+      return;
+    }
+
     setLoading(true);
-
     try {
-      if (!selectedGameId) {
-        setError("게임을 선택해주세요.");
-        setLoading(false);
-        return;
-      }
-
       await createPost({
         gameId: selectedGameId,
         caption,
@@ -174,7 +180,12 @@ function CreatePostPage() {
                 type="submit"
                 variant="contained"
                 fullWidth
-                disabled={loading}
+                disabled={
+                  loading ||
+                  !selectedGameId ||
+                  !hasMedia ||
+                  !caption.trim()
+                }
               >
                 {loading ? "작성 중..." : "게시하기"}
               </Button>

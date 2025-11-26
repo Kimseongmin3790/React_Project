@@ -20,16 +20,29 @@ function RegisterPage() {
     nickname: "",
   });
 
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleChange = (key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
+    if (key === "password") {
+      setPasswordError("");
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setPasswordError("");
+
+    if (form.password !== passwordConfirm) {
+      setPasswordError("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -77,7 +90,7 @@ function RegisterPage() {
           align="center"
           sx={{ fontWeight: "bold", mb: 3 }}
         >
-          Gamegram 회원가입
+          GClip 회원가입
         </Typography>
 
         <form onSubmit={handleSubmit}>
@@ -97,6 +110,20 @@ function RegisterPage() {
               size="small"
               value={form.password}
               onChange={handleChange("password")}
+              required
+              fullWidth
+            />
+            <TextField
+              label="비밀번호 확인"
+              type="password"
+              size="small"
+              value={passwordConfirm}
+              onChange={(e) => {
+                setPasswordConfirm(e.target.value);
+                setPasswordError("");
+              }}
+              error={!!passwordError}
+              helperText={passwordError || " "}
               required
               fullWidth
             />

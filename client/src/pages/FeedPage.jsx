@@ -1,5 +1,5 @@
 // src/pages/FeedPage.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -15,17 +15,23 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  Divider,
-  Badge,
 } from "@mui/material";
-import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import ShareIcon from "@mui/icons-material/Share";
+
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { buildFileUrl } from "../utils/url";
+import { followUser, unfollowUser, getUserRelation } from "../api/followApi";
+import { io } from "socket.io-client";
+import {
+  getNotificationSummary,
+  markAllNotificationsRead,
+} from "../api/notificationApi";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   fetchFeed,
   fetchGameList,
@@ -33,9 +39,10 @@ import {
   unlikePost,
   bookmarkPost,
   unbookmarkPost,
-  createComment
+  createComment,
 } from "../api/postApi";
 import PostDetailDialog from "../components/post/postDetail";
+import MainHeader from "../components/layout/MainHeader"; // 공통 헤더
 
 const API_ORIGIN = "http://localhost:3020";
 
@@ -45,9 +52,39 @@ function getMediaUrl(url) {
   return `${API_ORIGIN}${url}`;
 }
 
+// 알림 payload를 정규화
+function normalizeNotification(raw) {
+  if (!raw) return null;
+
+  const {
+    id,
+    type,
+    actorId,
+    actor_id,
+    postId,
+    post_id,
+    roomId,
+    room_id,
+    message,
+    createdAt,
+    created_at,
+  } = raw;
+
+  return {
+    id: id ?? null,
+    type,
+    actorId: actorId ?? actor_id ?? null,
+    postId: postId ?? post_id ?? null,
+    roomId: roomId ?? room_id ?? null,
+    message: message || "",
+    createdAt: createdAt || created_at || null,
+  };
+}
+
 function FeedPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +99,70 @@ function FeedPage() {
   const [detailPostId, setDetailPostId] = useState(null);
 
   const [commentInputs, setCommentInputs] = useState({});
+
+  // 🔔 알림 요약 + 리스트
+  const [unreadTotal, setUnreadTotal] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+
+  // 팔로우 관계
+  const [relations, setRelations] = useState({});
+  const [relationLoading, setRelationLoading] = useState({});
+
+  // 검색창(지금은 UI용)
+  const [searchText, setSearchText] = useState("");
+
+  const fetchRelation = useCallback(async (targetUserId) => {
+    try {
+      setRelationLoading((prev) => ({ ...prev, [targetUserId]: true }));
+      const rel = await getUserRelation(targetUserId); // { isMe, isFollowing, isFollower }
+
+      setRelations((prev) => ({
+        ...prev,
+        [targetUserId]: rel,
+      }));
+    } catch (err) {
+      console.error("관계 조회 실패:", err);
+      setRelations((prev) => ({
+        ...prev,
+        [targetUserId]: { isMe: false, isFollowing: false, isFollower: false },
+      }));
+    } finally {
+      setRelationLoading((prev) => {
+        const next = { ...prev };
+        delete next[targetUserId];
+        return next;
+      });
+    }
+  }, []);
+
+  // 팔로우 / 언팔 토글
+  const handleToggleFollow = async (targetUserId) => {
+    if (!user || targetUserId === user.id) return;
+
+    const current = relations[targetUserId] || {};
+    const prevIsFollowing = !!current.isFollowing;
+
+    // 낙관적 업데이트
+    setRelations((prev) => ({
+      ...prev,
+      [targetUserId]: { ...current, isFollowing: !prevIsFollowing },
+    }));
+
+    try {
+      if (prevIsFollowing) {
+        await unfollowUser(targetUserId);
+      } else {
+        await followUser(targetUserId);
+      }
+    } catch (err) {
+      console.error("팔로우 토글 실패:", err);
+      setRelations((prev) => ({
+        ...prev,
+        [targetUserId]: current,
+      }));
+      alert("팔로우 상태 변경 중 오류가 발생했습니다.");
+    }
+  };
 
   const openDetail = (postId) => {
     setDetailPostId(postId);
@@ -85,10 +186,17 @@ function FeedPage() {
     } else if (key === "logout") {
       logout();
       window.location.href = "/login";
+    } else if (key === "ranking") {
+      navigate("/ranking");
     }
-    // "최신 글", "인기 글", "게임 순위", "실시간 채팅", "더보기"는
-    // 나중에 API/페이지 만들면 여기에서 분기 처리하면 됨.
   };
+
+  // 랭킹 페이지에서 게임 선택 후 돌아왔을 때 필터 유지
+  useEffect(() => {
+    if (location.state && location.state.initialGameId) {
+      setSelectedGameId(String(location.state.initialGameId));
+    }
+  }, [location.state]);
 
   // 게임 목록 로딩
   useEffect(() => {
@@ -103,7 +211,7 @@ function FeedPage() {
     loadGames();
   }, []);
 
-  // 피드 로딩 (게임 필터 바뀔 때마다)
+  // 피드 로딩
   useEffect(() => {
     async function loadFeed() {
       try {
@@ -127,6 +235,84 @@ function FeedPage() {
     loadFeed();
   }, [selectedGameId]);
 
+  // 🔔 알림 요약 + 소켓 연결
+  useEffect(() => {
+    if (!user) return;
+
+    let socket;
+
+    (async () => {
+      try {
+        const summary = await getNotificationSummary();
+        setUnreadTotal(summary.unreadTotal || 0);
+
+        if (summary.lastNotification) {
+          const n = normalizeNotification(summary.lastNotification);
+          if (n) {
+            setNotifications((prev) => {
+              const exists = prev.some((item) =>
+                item.id && n.id
+                  ? item.id === n.id
+                  : item.type === n.type &&
+                    item.postId === n.postId &&
+                    item.roomId === n.roomId &&
+                    item.createdAt === n.createdAt
+              );
+              if (exists) return prev;
+              return [n, ...prev].slice(0, 20);
+            });
+          }
+        }
+      } catch (err) {
+        console.error("알림 요약 불러오기 실패:", err);
+      }
+
+      // 소켓 연결
+      socket = io("http://localhost:3020", {
+        auth: {
+          token: localStorage.getItem("token"),
+        },
+      });
+
+      socket.on("connect_error", (err) => {
+        console.error("notify socket connect_error:", err.message);
+      });
+
+      // 새 알림 수신
+      socket.on("notify:new", (payload) => {
+        const n = normalizeNotification(payload);
+        if (!n) return;
+
+        setUnreadTotal((prev) => prev + 1);
+        setNotifications((prev) => [n, ...prev].slice(0, 20));
+      });
+    })();
+
+    return () => {
+      if (socket) socket.disconnect();
+    };
+  }, [user]);
+
+  // 피드에 보이는 유저들에 대해 팔로우 관계 조회
+  useEffect(() => {
+    if (!user || posts.length === 0) return;
+
+    const uniqueAuthorIds = Array.from(
+      new Set(
+        posts
+          .map((p) => p.userId)
+          .filter((id) => id && id !== user.id)
+      )
+    );
+
+    uniqueAuthorIds.forEach((uid) => {
+      if (!relations[uid] && !relationLoading[uid]) {
+        fetchRelation(uid);
+      }
+    });
+  }, [user, posts, relations, relationLoading, fetchRelation]);
+
+  // 좋아요 토글
   const handleToggleLike = async (postId, currentIsLiked) => {
     try {
       let res;
@@ -147,6 +333,7 @@ function FeedPage() {
     }
   };
 
+  // 북마크 토글
   const handleToggleBookmark = async (postId, currentIsBookmarked) => {
     try {
       let res;
@@ -170,20 +357,20 @@ function FeedPage() {
   };
 
   const handleShare = (postId) => {
-      const url = `${window.location.origin}/posts/${postId}`;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(
-          () => {
-            alert("게시글 링크가 클립보드에 복사되었습니다.");
-          },
-          () => {
-            alert("복사에 실패했습니다. 직접 주소창의 주소를 복사해 주세요.");
-          }
-        );
-      } else {
-        alert("복사 기능을 지원하지 않는 브라우저입니다.");
-      }
-    };
+    const url = `${window.location.origin}/posts/${postId}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(
+        () => {
+          alert("게시글 링크가 클립보드에 복사되었습니다.");
+        },
+        () => {
+          alert("복사에 실패했습니다. 직접 주소창의 주소를 복사해 주세요.");
+        }
+      );
+    } else {
+      alert("복사 기능을 지원하지 않는 브라우저입니다.");
+    }
+  };
 
   const handleChangeCommentInput = (postId, value) => {
     setCommentInputs((prev) => ({
@@ -197,13 +384,11 @@ function FeedPage() {
     if (!text) return;
 
     try {
-      const newComment = await createComment(postId, text);
-      // 입력창 비우기
+      await createComment(postId, text);
       setCommentInputs((prev) => ({
         ...prev,
         [postId]: "",
       }));
-      // 해당 카드의 댓글 개수 +1
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
@@ -214,6 +399,33 @@ function FeedPage() {
     } catch (err) {
       console.error("피드에서 댓글 작성 실패:", err);
       alert("댓글 작성 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 🔔 헤더에서 알림 메뉴가 열릴 때(아이콘 클릭 시) 호출 → 모두 읽음 처리
+  const handleNotificationsOpened = async () => {
+    if (unreadTotal > 0) {
+      try {
+        await markAllNotificationsRead();
+        setUnreadTotal(0);
+      } catch (err) {
+        console.error("알림 읽음 처리 실패:", err);
+      }
+    }
+  };
+
+  // 🔔 개별 알림 클릭 시 동작
+  const handleNotificationClick = (n) => {
+    if (n.type === "CHAT_MESSAGE") {
+      navigate("/chat");
+    } else if (
+      n.type === "FOLLOWED_USER_POST" ||
+      n.type === "FOLLOWED_POST"
+    ) {
+      // 나중에 /posts/:id 로 바로 이동하게 바꿔도 됨
+      navigate("/");
+    } else {
+      console.log("unknown notification type:", n);
     }
   };
 
@@ -246,11 +458,19 @@ function FeedPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontWeight: "bold",
-              fontSize: 18,              
+              overflow: "hidden",
             }}
           >
-            로고
+            <Box
+              component="img"
+              src="/GClipLogo.png"
+              alt="GClip 로고"
+              sx={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
           </Box>
         </Box>
 
@@ -262,7 +482,7 @@ function FeedPage() {
           >
             <ListItemText primary="메인" />
           </ListItemButton>
-          
+
           <ListItemButton
             selected={selectedMenu === "ranking"}
             onClick={() => handleMenuClick("ranking")}
@@ -309,63 +529,22 @@ function FeedPage() {
 
       {/* ┌──────────────── 오른쪽 메인 영역 ────────────────┐ */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        {/* 상단 검은바: 검색창 + 알림 + 프로필 아이콘 */}
-        <Box
-          sx={{
-            bgcolor: "#333",
-            color: "#fff",
-            px: 3,
-            py: 1.5,
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-            GClip
-          </Typography>
+        {/* ✅ 공통 상단 헤더 */}
+        <MainHeader
+          user={user}
+          unreadTotal={unreadTotal}
+          notifications={notifications}
+          onNotificationClick={handleNotificationClick}
+          onNotificationsOpened={handleNotificationsOpened}
+          onClickLogo={() => navigate("/")}
+          onClickProfile={() => navigate("/me")}
+          showSearch={true}
+          searchPlaceholder="검색창"
+          searchValue={searchText}
+          onChangeSearch={(e) => setSearchText(e.target.value)}
+        />
 
-          {/* 검색창 */}
-          <Box sx={{ flexGrow: 1, mx: 3, maxWidth: 500 }}>
-            <TextField
-              size="small"
-              placeholder="검색창"
-              fullWidth
-              variant="outlined"
-              InputProps={{
-                sx: {
-                  bgcolor: "#f5f5f5",
-                  borderRadius: 5,
-                },
-              }}
-            />
-          </Box>
-
-          <Box
-            sx={{
-              ml: "auto",
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-            }}
-          >
-            <IconButton color="inherit">
-              <Badge color="error" variant="dot">
-                <NotificationsNoneIcon />
-              </Badge>
-            </IconButton>
-
-            <IconButton color="inherit" onClick={() => navigate("/me")}>
-              <Avatar
-                sx={{ width: 32, height: 32 }}
-                src={user?.avatarUrl || ""}
-              >
-                {user?.nickname?.[0] || user?.username?.[0] || "U"}
-              </Avatar>
-            </IconButton>
-          </Box>
-        </Box>
-
-        {/* 게임 필터 안내 바 */}
+        {/* 게임 필터 바 */}
         <Box sx={{ bgcolor: "#e0e0e0", p: 2 }}>
           <Box sx={{ maxWidth: 260 }}>
             <TextField
@@ -420,9 +599,15 @@ function FeedPage() {
             const name = post.nickname || post.username || "U";
             const caption = post.caption || "";
             const captionTooLong = caption.length > 50;
+
+            const isMe = post.userId === user?.id;
+            const relation = relations[post.userId];
+            const isFollowing = relation?.isFollowing;
+            const isRelationLoading = !!relationLoading[post.userId];
+
             return (
               <Card key={post.id}>
-                {/* 1) 썸네일 위: 프로필 / 이름 / 날짜 */}
+                {/* 1) 썸네일 위: 프로필 / 이름 / 팔로우 / 날짜 */}
                 <Box
                   sx={{
                     px: 2,
@@ -437,22 +622,52 @@ function FeedPage() {
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Avatar
                       sx={{ width: 28, height: 28 }}
-                      src={post.avatarUrl || ""}
+                      src={buildFileUrl(post.avatarUrl) || ""}
                     >
                       {name[0]}
                     </Avatar>
                     <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: "bold" }}
+                      >
                         {name}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "text.secondary" }}
+                      >
                         {post.gameName}
                       </Typography>
                     </Box>
                   </Box>
-                  <Typography variant="caption">
-                    {new Date(post.createdAt).toLocaleDateString()}
-                  </Typography>
+
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {!isMe && (
+                      <Button
+                        size="small"
+                        variant={isFollowing ? "outlined" : "contained"}
+                        color={isFollowing ? "inherit" : "primary"}
+                        disabled={isRelationLoading}
+                        onClick={() => handleToggleFollow(post.userId)}
+                        sx={{
+                          textTransform: "none",
+                          minWidth: 72,
+                          fontSize: "0.75rem",
+                          py: 0.3,
+                        }}
+                      >
+                        {isRelationLoading
+                          ? "..."
+                          : isFollowing
+                          ? "팔로잉"
+                          : "팔로우"}
+                      </Button>
+                    )}
+                    <Typography variant="caption">
+                      {new Date(post.createdAt).toLocaleDateString()}
+                    </Typography>
+                  </Box>
                 </Box>
 
                 {/* 2) 썸네일 (이미지/영상) */}
@@ -464,7 +679,7 @@ function FeedPage() {
                     sx={{ maxHeight: 400 }}
                   />
                 )}
-                
+
                 <CardContent sx={{ p: 0 }}>
                   {/* 좋아요 / 북마크 / 공유 */}
                   <Box
@@ -475,10 +690,9 @@ function FeedPage() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "flex-start",
-                      gap: 0.5
+                      gap: 0.5,
                     }}
                   >
-                    {/* 좋아요 */}
                     <IconButton
                       size="small"
                       onClick={() => handleToggleLike(post.id, liked)}
@@ -490,10 +704,11 @@ function FeedPage() {
                       )}
                     </IconButton>
 
-                    {/* 북마크 */}
                     <IconButton
                       size="small"
-                      onClick={() => handleToggleBookmark(post.id, bookmarked)}
+                      onClick={() =>
+                        handleToggleBookmark(post.id, bookmarked)
+                      }
                     >
                       {bookmarked ? (
                         <BookmarkIcon fontSize="small" />
@@ -502,19 +717,24 @@ function FeedPage() {
                       )}
                     </IconButton>
 
-                    {/* 공유 */}
-                    <IconButton size="small" onClick={() => handleShare(post.id)}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleShare(post.id)}
+                    >
                       <ShareIcon fontSize="small" />
                     </IconButton>
                   </Box>
 
                   <Box sx={{ px: 2, pt: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: "bold" }}
+                    >
                       좋아요 {post.likeCount ?? 0}개
                     </Typography>
                   </Box>
 
-                  {/* 캡션: [작성자 이름] [한 줄 캡션 …] + 더보기 */}
+                  {/* 캡션 */}
                   <Box
                     sx={{
                       px: 2,
@@ -526,12 +746,15 @@ function FeedPage() {
                   >
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: "bold", mr: 1, whiteSpace: "nowrap" }}
+                      sx={{
+                        fontWeight: "bold",
+                        mr: 1,
+                        whiteSpace: "nowrap",
+                      }}
                     >
                       {name}
                     </Typography>
 
-                    {/* 캡션 텍스트 (1줄, … 처리) */}
                     <Box sx={{ flexGrow: 1, overflow: "hidden" }}>
                       <Typography
                         variant="body2"
@@ -546,7 +769,6 @@ function FeedPage() {
                       </Typography>
                     </Box>
 
-                    {/* 캡션 길면 더보기 버튼 → 상세 모달 */}
                     {captionTooLong && (
                       <Button
                         size="small"
@@ -557,7 +779,7 @@ function FeedPage() {
                           p: 0,
                           minWidth: "auto",
                           fontSize: "0.8rem",
-                          whiteSpace: "nowrap"
+                          whiteSpace: "nowrap",
                         }}
                       >
                         더보기
@@ -568,8 +790,8 @@ function FeedPage() {
                   {/* 댓글 모두 보기 */}
                   <Box
                     sx={{
-                      px: 2,                      
-                      pb: 0.5,                    
+                      px: 2,
+                      pb: 0.5,
                     }}
                   >
                     <Button
@@ -584,7 +806,7 @@ function FeedPage() {
                   {/* 댓글 입력창 */}
                   <Box
                     sx={{
-                      px: 2,                      
+                      px: 2,
                       pt: 2,
                       display: "flex",
                       alignItems: "center",
@@ -596,7 +818,9 @@ function FeedPage() {
                       size="small"
                       placeholder="댓글 달기..."
                       value={commentInputs[post.id] || ""}
-                      onChange={(e) => handleChangeCommentInput(post.id, e.target.value)}
+                      onChange={(e) =>
+                        handleChangeCommentInput(post.id, e.target.value)
+                      }
                       fullWidth
                     />
                     <Button

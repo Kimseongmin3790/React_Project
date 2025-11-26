@@ -1,7 +1,9 @@
 // controllers/authController.js
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
+const db = require("../db");
 
 const SALT_ROUNDS = 10;
 
@@ -107,5 +109,49 @@ exports.me = async (req, res) => {
   } catch (err) {
     console.error('me error:', err);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: "이메일을 입력해주세요." });
+  }
+
+  try {
+    const [rows] = await db.query(
+      "SELECT id FROM users WHERE email = ?",
+      [email]
+    );
+
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .json({ ok: false, message: "등록된 이메일이 없습니다." });
+    }
+
+    const userId = rows[0].id;
+
+    // 임시 비밀번호 생성 (8자리 정도)
+    const tempPassword = crypto.randomBytes(4).toString("hex"); // 예: "9f3a21bc"
+
+    const hash = await bcrypt.hash(tempPassword, 10);
+
+    await db.query(
+      "UPDATE users SET password_hash = ? WHERE id = ?",
+      [hash, userId]
+    );
+
+    return res.json({
+      ok: true,
+      message: "임시 비밀번호가 발급되었습니다.",
+      tempPassword, // 프론트에서 보여주기
+    });
+  } catch (err) {
+    console.error("resetPassword error:", err);
+    return res.status(500).json({
+      ok: false,
+      message: "비밀번호 재설정 중 오류가 발생했습니다.",
+    });
   }
 };
