@@ -1,11 +1,8 @@
+// src/pages/ChatPage.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import {
   Box,
-  AppBar,
-  Toolbar,
-  IconButton,
-  Typography,
   Container,
   TextField,
   Button,
@@ -18,27 +15,38 @@ import {
   ListItemButton,
   ListItemAvatar,
   ListItemText,
+  Typography,
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { fetchGameList } from "../api/postApi";
 import { searchUsers } from "../api/userApi";
 import { fetchUnreadSummary } from "../api/ChatApi";
+import { buildFileUrl } from "../utils/url";
+
+import SideNav from "../components/layout/SideNav";
+import MainHeader from "../components/layout/MainHeader";
+import CreatePostDialog from "../components/post/CreatePostDialog";
 
 const SOCKET_URL = "http://localhost:3020";
 
 function ChatPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const theme = useTheme();
 
   const socketRef = useRef(null);
   const currentRoomIdRef = useRef(null);
   const bottomRef = useRef(null);
 
+  const [selectedMenu, setSelectedMenu] = useState("chat");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
   const [mode, setMode] = useState("GAME"); // GAME | DM
   const [gameList, setGameList] = useState([]);
-  const [selectedGameId, setSelectedGameId] = useState("");  
+  const [selectedGameId, setSelectedGameId] = useState("");
 
   const [currentRoomId, setCurrentRoomId] = useState(null);
   const [roomInfo, setRoomInfo] = useState(null); // { type, gameId, gameName, otherUserId }
@@ -55,6 +63,20 @@ function ChatPage() {
 
   const [unreadSummary, setUnreadSummary] = useState({}); // { [roomId]: count }
   const [lastNotification, setLastNotification] = useState(null); // 마지막 알림용
+
+  // ────────────────────────── 공통 네비게이션 (SideNav) ──────────────────────────
+  const handleMenuClick = (key) => {
+    setSelectedMenu(key);
+    if (key === "main") navigate("/");
+    else if (key === "ranking") navigate("/ranking");
+    else if (key === "chat") navigate("/chat");
+    else if (key === "write") setCreateOpen(true);
+    else if (key === "profile") navigate("/me");
+    else if (key === "logout") {
+      logout();
+      window.location.href = "/login";
+    }
+  };
 
   // ────────────────────────── 소켓 연결 ──────────────────────────
   useEffect(() => {
@@ -84,7 +106,7 @@ function ChatPage() {
         if (!currentRoomIdRef.current) return prev;
         // 현재 보고 있는 방 메시지만 화면에 추가
         if (msg.roomId !== currentRoomIdRef.current) {
-          // TODO: 여기서 알림용 로직 추가 가능 (나중에)
+          // 다른 방 메시지는 여기서는 UI에 안 붙이고 unreadSummary로만 관리
           return prev;
         }
         return [...prev, msg];
@@ -94,11 +116,11 @@ function ChatPage() {
     s.on("chat:notification", (notif) => {
       console.log("chat:notification", notif);
       setUnreadSummary((prev) => {
-          const prevCount = prev[notif.roomId] || 0;
-          return {
+        const prevCount = prev[notif.roomId] || 0;
+        return {
           ...prev,
           [notif.roomId]: prevCount + 1,
-          };
+        };
       });
       setLastNotification(notif);
     });
@@ -110,12 +132,12 @@ function ChatPage() {
 
   useEffect(() => {
     async function loadUnread() {
-        try {
+      try {
         const map = await fetchUnreadSummary();
         setUnreadSummary(map);
-        } catch (err) {
+      } catch (err) {
         console.error("fetchUnreadSummary error:", err);
-        }
+      }
     }
     loadUnread();
   }, []);
@@ -151,13 +173,11 @@ function ChatPage() {
   };
 
   // ────────────────────────── 방 입장: 게임 채팅 ──────────────────────────
-  const handleJoinGameRoom = () => {
-    joinGameRoomById(selectedGameId);
+  const joinGameRoomById = (gameIdParam) => {
     const s = socketRef.current;
     if (!s) return;
 
-    const gameId = Number(selectedGameId);
-
+    const gameId = Number(gameIdParam);
     if (!gameId) {
       alert("게임을 선택해 주세요.");
       return;
@@ -184,11 +204,17 @@ function ChatPage() {
         gameId,
         gameName: game ? game.name : `게임 #${gameId}`,
       });
+
+      // 이 방은 방금 읽음 → 안읽음 0
       setUnreadSummary((prev) => ({
-      ...prev,
-      [res.roomId]: 0,
+        ...prev,
+        [res.roomId]: 0,
       }));
     });
+  };
+
+  const handleJoinGameRoom = () => {
+    joinGameRoomById(selectedGameId);
   };
 
   // ────────────────────────── 방 입장: DM ──────────────────────────
@@ -225,8 +251,8 @@ function ChatPage() {
         otherUserId: otherId,
       });
       setUnreadSummary((prev) => ({
-      ...prev,
-      [res.roomId]: 0,
+        ...prev,
+        [res.roomId]: 0,
       }));
     });
   };
@@ -234,24 +260,24 @@ function ChatPage() {
   const handleSearchDmUser = async () => {
     const q = dmSearch.trim();
     if (!q) {
-        setDmSearchResults([]);
-        setDmSearchError("");
-        return;
+      setDmSearchResults([]);
+      setDmSearchError("");
+      return;
     }
 
     setDmSearchLoading(true);
     setDmSearchError("");
     try {
-        const list = await searchUsers(q);
-        if (list.length === 0) {
+      const list = await searchUsers(q);
+      if (list.length === 0) {
         setDmSearchError("검색 결과가 없습니다.");
-        }
-        setDmSearchResults(list);
+      }
+      setDmSearchResults(list);
     } catch (err) {
-        console.error("DM 사용자 검색 실패:", err);
-        setDmSearchError("사용자 검색 중 오류가 발생했습니다.");
+      console.error("DM 사용자 검색 실패:", err);
+      setDmSearchError("사용자 검색 중 오류가 발생했습니다.");
     } finally {
-        setDmSearchLoading(false);
+      setDmSearchLoading(false);
     }
   };
 
@@ -277,7 +303,7 @@ function ChatPage() {
     }
   };
 
-  // ────────────────────────── UI render ──────────────────────────
+  // ────────────────────────── UI helpers ──────────────────────────
   const renderRoomTitle = () => {
     if (!roomInfo) return "채팅방을 선택하세요";
 
@@ -293,390 +319,427 @@ function ChatPage() {
     (sum, c) => sum + c,
     0
   );
-  // ────────────────────────── 기타 함수 ──────────────────────────
+
   const handleOpenRoomFromNotification = (notif) => {
     if (!notif) return;
 
     if (notif.roomType === "GAME") {
-        setMode("GAME");
-        setSelectedGameId(String(notif.gameId));
-        joinGameRoomById(notif.gameId);
+      setMode("GAME");
+      setSelectedGameId(String(notif.gameId));
+      joinGameRoomById(notif.gameId);
     } else if (notif.roomType === "DM") {
-        setMode("DM");
-        handleJoinDmRoom(notif.dmUserId);
+      setMode("DM");
+      handleJoinDmRoom(notif.dmUserId);
     }
 
     setLastNotification(null);
   };
 
-  const joinGameRoomById = (gameIdParam) => {
-    const s = socketRef.current;
-    if (!s) return;
+  if (!user) {
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Typography>로그인이 필요합니다.</Typography>
+      </Container>
+    );
+  }
 
-    const gameId = Number(gameIdParam);
-    if (!gameId) {
-        alert("게임을 선택해 주세요.");
-        return;
+  const formatMessageTime = (createdAt) => {
+    if (!createdAt) return "";
+
+    const d = new Date(createdAt);
+    if (Number.isNaN(d.getTime())) return "";
+
+    const now = new Date();
+
+    const isSameDay =
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate();
+
+    if (isSameDay) {
+      // 오늘 → 시간만
+      return d.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     }
 
-    setLoadingHistory(true);
-    setJoinError("");
-
-    s.emit("chat:joinGame", gameId, (res) => {
-        setLoadingHistory(false);
-        if (!res || !res.ok) {
-        console.error("joinGame 실패:", res);
-        setJoinError("게임 채팅방 입장 중 오류가 발생했습니다.");
-        return;
-        }
-
-        setCurrentRoomId(res.roomId);
-        currentRoomIdRef.current = res.roomId;
-        setMessages(res.messages || []);
-
-        const game = gameList.find((g) => g.id === gameId);
-        setRoomInfo({
-        type: "GAME",
-        gameId,
-        gameName: game ? game.name : `게임 #${gameId}`,
-        });
-
-        // 이 방은 방금 읽음 → 안읽음 0
-        setUnreadSummary((prev) => ({
-        ...prev,
-        [res.roomId]: 0,
-        }));
+    // 오늘이 아니면 날짜 + 시간
+    return d.toLocaleString([], {
+      year: "2-digit",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
+  // ────────────────────────── RENDER ──────────────────────────
   return (
     <Box
       sx={{
-        minHeight: "100vh",
-        bgcolor: "#fafafa",
         display: "flex",
-        flexDirection: "column",
+        minHeight: "100vh",
+        bgcolor: theme.palette.background.default, // 🔥 다크모드 대응
       }}
     >
-      {/* 상단 AppBar */}
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
-          <IconButton edge="start" onClick={() => navigate(-1)}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h6" sx={{ ml: 1, fontWeight: "bold" }}>
+      {/* 왼쪽 사이드바 (sticky는 SideNav 내부에서 처리) */}
+      <SideNav selectedMenu={selectedMenu} onMenuClick={handleMenuClick} />
+
+      {/* 오른쪽 메인 영역 */}
+      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+        {/* 공통 상단 헤더 */}
+        <MainHeader
+          user={user}
+          unreadTotal={0} // 글로벌 알림 안 쓰는 페이지라 0 / []로 전달
+          notifications={[]}
+          onNotificationClick={() => {}}
+          onNotificationsOpened={() => {}}
+          onClickLogo={() => navigate("/")}
+          onClickProfile={() => navigate("/me")}
+          showSearch={false}
+        />
+
+        {/* 채팅 메인 콘텐츠 */}
+        <Container
+          maxWidth="md"
+          sx={{
+            flexGrow: 1,
+            display: "flex",
+            flexDirection: "column",
+            py: 2,
+            gap: 2,
+          }}
+        >
+          {/* 제목 */}
+          <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
             실시간 채팅
           </Typography>
-        </Toolbar>
-      </AppBar>
 
-      {/* 메인 영역 */}
-      <Container
-        maxWidth="md"
-        sx={{
-          flexGrow: 1,
-          display: "flex",
-          flexDirection: "column",
-          py: 2,
-          gap: 2,
-        }}
-      >
-        {/* 모드 탭 (게임 / DM) */}
-        <Tabs
-          value={mode}
-          onChange={handleChangeMode}
-          sx={{ borderBottom: "1px solid #e0e0e0" }}
-        >
-          <Tab label="게임 채팅" value="GAME" />
-          <Tab label="DM" value="DM" />
-        </Tabs>
-
-        {/* 전체 안읽음 수 표시 */}
-        {totalUnread > 0 && (
-          <Typography
-            variant="body2"
-            sx={{ mt: 1, color: "primary.main", fontWeight: "bold" }}
+          {/* 모드 탭 (게임 / DM) */}
+          <Tabs
+            value={mode}
+            onChange={handleChangeMode}
+            sx={{ borderBottom: `1px solid ${theme.palette.divider}` }} // 🔥
           >
-            전체 안읽은 메시지: {totalUnread}개
-        </Typography>
-        )}
+            <Tab label="게임 채팅" value="GAME" />
+            <Tab label="DM" value="DM" />
+          </Tabs>
 
-        {lastNotification && (
-          <Paper
-            elevation={0}
-            sx={{
-            mt: 1,
-            p: 1.5,
-            bgcolor: "#fffbe6",
-            border: "1px solid #ffe58f",
-            borderRadius: 1.5,
-            }}
-          >
-            <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-            새 메시지 ·{" "}
-            {lastNotification.roomType === "GAME" ? "게임 채팅" : "DM"}
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 0.5 }}>
-            {lastNotification.senderName}: {lastNotification.content}
-            </Typography>
-            <Button
-            size="small"
-            sx={{ mt: 0.5, textTransform: "none" }}
-            onClick={() => handleOpenRoomFromNotification(lastNotification)}
+          {/* 전체 안읽음 수 표시 */}
+          {totalUnread > 0 && (
+            <Typography
+              variant="body2"
+              sx={{ mt: 1, color: "primary.main", fontWeight: "bold" }}
             >
-            이 방으로 이동
-            </Button>
-          </Paper>
-        )}
+              전체 안읽은 메시지: {totalUnread}개
+            </Typography>
+          )}
 
-        {/* 방 선택 영역 */}
-        {mode === "GAME" && (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-              mt: 1,
-            }}
-          >
-            <TextField
-              select
-              size="small"
-              label="게임 선택"
-              value={selectedGameId}
-              onChange={(e) => setSelectedGameId(e.target.value)}
-              sx={{ minWidth: 200 }}
+          {lastNotification && (
+            <Paper
+              elevation={0}
+              sx={{
+                mt: 1,
+                p: 1.5,
+                bgcolor:
+                  theme.palette.mode === "dark"
+                    ? theme.palette.action.hover
+                    : "#fffbe6", // 🔥 다크/라이트 구분
+                border: `1px solid ${
+                  theme.palette.mode === "dark"
+                    ? theme.palette.warning.light
+                    : "#ffe58f"
+                }`,
+                borderRadius: 1.5,
+              }}
             >
-              <MenuItem value="">선택 안 함</MenuItem>
-              {gameList.map((g) => (
-                <MenuItem key={g.id} value={g.id}>
-                  {g.name}
-                </MenuItem>
-              ))}
-            </TextField>
-            <Button variant="contained" onClick={handleJoinGameRoom}>
-              이 게임 채팅방 입장
-            </Button>
-          </Box>
-        )}
+              <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                새 메시지 ·{" "}
+                {lastNotification.roomType === "GAME" ? "게임 채팅" : "DM"}
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                {lastNotification.senderName}: {lastNotification.content}
+              </Typography>
+              <Button
+                size="small"
+                sx={{ mt: 0.5, textTransform: "none" }}
+                onClick={() => handleOpenRoomFromNotification(lastNotification)}
+              >
+                이 방으로 이동
+              </Button>
+            </Paper>
+          )}
 
-        {mode === "DM" && (
-          <Box sx={{ mt: 1 }}>
-            {/* 검색 입력 + 버튼 */}
+          {/* 방 선택 영역 */}
+          {mode === "GAME" && (
             <Box
               sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                mt: 1,
+              }}
+            >
+              <TextField
+                select
+                size="small"
+                label="게임 선택"
+                value={selectedGameId}
+                onChange={(e) => setSelectedGameId(e.target.value)}
+                sx={{ minWidth: 200 }}
+              >
+                <MenuItem value="">선택 안 함</MenuItem>
+                {gameList.map((g) => (
+                  <MenuItem key={g.id} value={g.id}>
+                    {g.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Button variant="contained" onClick={handleJoinGameRoom}>
+                이 게임 채팅방 입장
+              </Button>
+            </Box>
+          )}
+
+          {mode === "DM" && (
+            <Box sx={{ mt: 1 }}>
+              {/* 검색 입력 + 버튼 */}
+              <Box
+                sx={{
                   display: "flex",
                   alignItems: "center",
                   gap: 2,
                   mb: 1.5,
-              }}
-            >
-              <TextField
+                }}
+              >
+                <TextField
                   size="small"
                   label="닉네임 / 아이디 검색"
                   placeholder="예: 닉네임 또는 @아이디"
                   value={dmSearch}
                   onChange={(e) => setDmSearch(e.target.value)}
                   sx={{ minWidth: 220 }}
-              />
-              <Button variant="contained" onClick={handleSearchDmUser}>
+                />
+                <Button variant="contained" onClick={handleSearchDmUser}>
                   사용자 검색
-              </Button>
-            </Box>
+                </Button>
+              </Box>
 
-            {/* 검색 상태 / 에러 */}
-            {dmSearchLoading && (
-              <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
-                  검색 중...
-              </Typography>
-            )}
-            {dmSearchError && (
-              <Typography variant="body2" color="error" sx={{ mb: 1 }}>
-                  {dmSearchError}
-              </Typography>
-            )}
-
-            {/* 검색 결과 리스트 */}
-            <List
-              dense
-              sx={{
-                  maxHeight: 200,
-                  overflowY: "auto",
-                  border: "1px solid #e0e0e0",
-                  borderRadius: 1,
-                  bgcolor: "#fff",
-              }}
-            >
-              {dmSearchResults.length === 0 && !dmSearchLoading && !dmSearchError && (
+              {/* 검색 상태 / 에러 */}
+              {dmSearchLoading && (
                 <Typography
                   variant="body2"
-                  sx={{ p: 1, color: "text.secondary" }}
+                  sx={{ color: "text.secondary", mb: 1 }}
                 >
-                  사용자 검색 결과가 여기에 표시됩니다.
+                  검색 중...
+                </Typography>
+              )}
+              {dmSearchError && (
+                <Typography variant="body2" color="error" sx={{ mb: 1 }}>
+                  {dmSearchError}
                 </Typography>
               )}
 
-              {dmSearchResults.map((u) => {
-                const displayName = u.nickname || u.username || `user#${u.id}`;
-                return (
-                  <ListItemButton
-                      key={u.id}
-                      onClick={() => handleJoinDmRoom(u.id)}
-                  >
-                    <ListItemAvatar>
-                      <Avatar src={u.avatarUrl || ""}>
-                          {displayName[0]}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={displayName}
-                      secondary={`@${u.username} (id: ${u.id})`}
-                    />
-                  </ListItemButton>
-                );
-            })}
-            </List>
-          </Box>
-        )}
-
-        {/* 현재 방 정보 / 상태 */}
-        <Box sx={{ mt: 1 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-            {renderRoomTitle()}
-          </Typography>
-          {loadingHistory && (
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              이전 채팅 불러오는 중...
-            </Typography>
-          )}
-          {joinError && (
-            <Typography variant="body2" color="error">
-              {joinError}
-            </Typography>
-          )}
-        </Box>
-
-        {/* 메시지 리스트 */}
-        <Paper
-          elevation={0}
-          sx={{
-            flexGrow: 1,
-            p: 2,
-            bgcolor: "#f5f5f5",
-            borderRadius: 2,
-            overflowY: "auto",
-          }}
-        >
-          {(!roomInfo || messages.length === 0) && !loadingHistory && (
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              {roomInfo
-                ? "아직 메시지가 없습니다. 첫 메시지를 보내보세요!"
-                : "왼쪽에서 게임을 선택하거나 DM 대상을 선택해 채팅방에 입장하세요."}
-            </Typography>
-          )}
-
-          {messages.map((m) => {
-            const isMe = m.senderId === user?.id;
-            const name = m.nickname || m.username || "U";
-
-            return (
-              <Box
-                key={m.id + m.createdAt}
+              {/* 검색 결과 리스트 */}
+              <List
+                dense
                 sx={{
-                  display: "flex",
-                  justifyContent: isMe ? "flex-end" : "flex-start",
-                  mb: 1.2,
+                  maxHeight: 200,
+                  overflowY: "auto",
+                  border: `1px solid ${theme.palette.divider}`, // 🔥
+                  borderRadius: 1,
+                  bgcolor: theme.palette.background.paper, // 🔥
                 }}
               >
-                {!isMe && (
-                  <Avatar sx={{ width: 28, height: 28, mr: 1 }}>
-                    {name[0]}
-                  </Avatar>
-                )}
-
-                <Box
-                  sx={{
-                    maxWidth: "70%",
-                    bgcolor: isMe ? "#1976d2" : "#ffffff",
-                    color: isMe ? "#fff" : "#000",
-                    borderRadius: 2,
-                    px: 1.5,
-                    py: 0.8,
-                  }}
-                >
-                  {!isMe && (
+                {dmSearchResults.length === 0 &&
+                  !dmSearchLoading &&
+                  !dmSearchError && (
                     <Typography
-                      variant="caption"
-                      sx={{
-                        fontWeight: "bold",
-                        display: "block",
-                        mb: 0.3,
-                      }}
+                      variant="body2"
+                      sx={{ p: 1, color: "text.secondary" }}
                     >
-                      {name}
+                      사용자 검색 결과가 여기에 표시됩니다.
                     </Typography>
                   )}
 
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                      overflowWrap: "anywhere",
-                    }}
-                  >
-                    {m.content}
-                  </Typography>
+                {dmSearchResults.map((u) => {
+                  const displayName =
+                    u.nickname || u.username || `user#${u.id}`;
+                  return (
+                    <ListItemButton
+                      key={u.id}
+                      onClick={() => handleJoinDmRoom(u.id)}
+                    >
+                      <ListItemAvatar>
+                        <Avatar src={buildFileUrl(u.avatarUrl) || ""}>
+                          {displayName[0]}
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={displayName}
+                        secondary={`@${u.username} (id: ${u.id})`}
+                      />
+                    </ListItemButton>
+                  );
+                })}
+              </List>
+            </Box>
+          )}
 
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      opacity: 0.7,
-                      display: "block",
-                      textAlign: "right",
-                      mt: 0.3,
-                    }}
-                  >
-                    {new Date(m.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Typography>
-                </Box>
+          {/* 현재 방 정보 / 상태 */}
+          <Box sx={{ mt: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+              {renderRoomTitle()}
+            </Typography>
+            {loadingHistory && (
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                이전 채팅 불러오는 중...
+              </Typography>
+            )}
+            {joinError && (
+              <Typography variant="body2" color="error">
+                {joinError}
+              </Typography>
+            )}
+          </Box>
 
-                {isMe && (
-                  <Avatar sx={{ width: 28, height: 28, ml: 1 }}>
-                    {(user?.nickname || user?.username || "U")[0]}
-                  </Avatar>
-                )}
-              </Box>
-            );
-          })}
-          <div ref={bottomRef} />
-        </Paper>
-
-        {/* 입력창 */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <TextField
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            multiline
-            maxRows={4}
-            placeholder={
-              currentRoomId ? "메시지를 입력하세요" : "먼저 채팅방에 입장하세요"
-            }
-            fullWidth
-          />
-          <Button
-            variant="contained"
-            onClick={handleSend}
-            disabled={!input.trim() || !currentRoomId}
+          {/* 메시지 리스트 */}
+          <Paper
+            elevation={0}
+            sx={{
+              flexGrow: 1,
+              p: 2,
+              bgcolor: theme.palette.background.paper, // 🔥
+              borderRadius: 2,
+              overflowY: "auto",
+            }}
           >
-            전송
-          </Button>
-        </Box>
-      </Container>
+            {(!roomInfo || messages.length === 0) && !loadingHistory && (
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {roomInfo
+                  ? "아직 메시지가 없습니다. 첫 메시지를 보내보세요!"
+                  : "위에서 게임을 선택하거나 DM 대상을 선택해 채팅방에 입장하세요."}
+              </Typography>
+            )}
+
+            {messages.map((m) => {
+              const isMe = m.senderId === user?.id;
+              const name = m.nickname || m.username || "U";
+              const displayTime = formatMessageTime(m.createdAt);
+
+              return (
+                <Box
+                  key={m.id + m.createdAt}
+                  sx={{
+                    display: "flex",
+                    justifyContent: isMe ? "flex-end" : "flex-start",
+                    mb: 1.2,
+                  }}
+                >
+                  {!isMe && (
+                    <Avatar sx={{ width: 28, height: 28, mr: 1 }} src={buildFileUrl(m.avatarUrl) || ""}>
+                      {name[0]}
+                    </Avatar>
+                  )}
+
+                  <Box
+                    sx={{
+                      maxWidth: "70%",
+                      bgcolor: isMe
+                        ? theme.palette.primary.main
+                        : theme.palette.background.paper,
+                      color: isMe
+                        ? theme.palette.primary.contrastText
+                        : theme.palette.text.primary,
+                      borderRadius: 2,
+                      px: 1.5,
+                      py: 0.8,
+                      border: !isMe ? `1px solid ${
+                                        theme.palette.mode === "dark"
+                                        ? "rgba(255,255,255,0.35)"
+                                        : "rgba(0,0,0,0.18)"
+                                      }`
+                                      : "none"
+                    }}
+                  >
+                    {!isMe && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: "bold",
+                          display: "block",
+                          mb: 0.3,
+                        }}
+                      >
+                        {name}
+                      </Typography>
+                    )}
+
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {m.content}
+                    </Typography>
+
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        opacity: 0.7,
+                        display: "block",
+                        textAlign: "right",
+                        mt: 0.3,
+                      }}
+                    >
+                      {displayTime}
+                    </Typography>
+                  </Box>
+
+                  {isMe && (
+                    <Avatar sx={{ width: 28, height: 28, ml: 1 }} src={buildFileUrl(user?.avatarUrl) || ""}>
+                      {(user?.nickname || user?.username || "U")[0]}
+                    </Avatar>
+                  )}
+                </Box>
+              );
+            })}
+            <div ref={bottomRef} />
+          </Paper>
+
+          {/* 입력창 */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <TextField
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              multiline
+              maxRows={4}
+              placeholder={
+                currentRoomId ? "메시지를 입력하세요" : "먼저 채팅방에 입장하세요"
+              }
+              fullWidth
+            />
+            <Button
+              variant="contained"
+              onClick={handleSend}
+              disabled={!input.trim() || !currentRoomId}
+            >
+              전송
+            </Button>
+          </Box>
+
+          {/* 글쓰기 모달 */}
+          <CreatePostDialog
+            open={createOpen}
+            onClose={() => setCreateOpen(false)}
+          />
+        </Container>
+      </Box>
     </Box>
   );
 }

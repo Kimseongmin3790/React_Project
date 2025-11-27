@@ -18,6 +18,7 @@ import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ArticleIcon from "@mui/icons-material/Article";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import { buildFileUrl } from "../../utils/url";
+import { useTheme } from "@mui/material/styles";
 
 function MainHeader({
   user,
@@ -31,11 +32,12 @@ function MainHeader({
   searchPlaceholder = "검색",
   searchValue = "",
   onChangeSearch,
+  onSearchSubmit,
 }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
+  const theme = useTheme();
 
-  // 종 아이콘 클릭 → 메뉴 열기 + 읽음 처리 콜백 호출
   const handleOpen = (event) => {
     setAnchorEl(event.currentTarget);
     if (onNotificationsOpened) {
@@ -54,17 +56,27 @@ function MainHeader({
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && onSearchSubmit) {
+      onSearchSubmit(searchValue);
+    }
+  };
+
   return (
     <>
       {/* 상단 바 */}
       <Box
         sx={{
-          bgcolor: "#333",
-          color: "#fff",
+          bgcolor: theme.palette.background.paper,    // 🔥 헤더 배경
+          color: theme.palette.text.primary,         // 🔥 글자/아이콘 색
           px: 3,
           py: 1.5,
           display: "flex",
           alignItems: "center",
+          borderBottom: (t) => `1px solid ${t.palette.divider}`,
+          position: "sticky",
+          top: 0,
+          zIndex: 1100,
         }}
       >
         <Typography
@@ -72,6 +84,7 @@ function MainHeader({
           sx={{
             fontWeight: "bold",
             cursor: onClickLogo ? "pointer" : "default",
+            mr: 2,
           }}
           onClick={onClickLogo}
         >
@@ -87,10 +100,23 @@ function MainHeader({
               variant="outlined"
               value={searchValue}
               onChange={onChangeSearch}
+              onKeyDown={handleKeyDown}
               InputProps={{
                 sx: {
-                  bgcolor: "#f5f5f5",
+                  bgcolor:
+                    theme.palette.mode === "light"
+                      ? theme.palette.background.default
+                      : theme.palette.grey[900],       // 🔥 다크모드에서 어두운 검색창
                   borderRadius: 5,
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "transparent",
+                  },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "transparent",
+                  },
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    borderColor: theme.palette.primary.main,
+                  },
                 },
               }}
             />
@@ -139,6 +165,7 @@ function MainHeader({
           sx: {
             width: 320,
             maxHeight: 400,
+            bgcolor: theme.palette.background.paper,      // 🔥 메뉴도 테마 배경
           },
         }}
       >
@@ -199,7 +226,7 @@ function MainHeader({
                 onClick={() => handleItemClick(n)}
                 sx={{ alignItems: "flex-start", whiteSpace: "normal" }}
               >
-                <ListItemIcon sx={{ mt: 0.5, minWidth: 32 }}>
+                <ListItemIcon sx={{ mt: 0.5, minWidth: 32, color: "inherit" }}>
                   {isChat ? (
                     <ChatBubbleOutlineIcon fontSize="small" />
                   ) : isPost ? (

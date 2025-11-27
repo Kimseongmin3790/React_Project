@@ -38,14 +38,18 @@ export async function createPost({ gameId, caption, images = [], videos = [] }) 
 }
 
 // 📰 피드 가져오기 (나중에 FeedPage에서 axios 대신 이거 써도 됨)
-export async function fetchFeed({ page = 1, limit = 10, gameId } = {}) {
-  const params = { page, limit };
-  if (gameId) params.gameId = gameId;
-
-  const res = await api.get("/posts", { params });
-
-  // { page, limit, posts: [...] }
-  return res.data;
+export async function fetchFeed({
+  page = 1,
+  limit = 10,
+  sort = "latest",
+  period = "all",
+  gameId,
+} = {}) {
+  const res = await api.get("/posts", {
+    params: { page, limit, sort, period, gameId },
+  });
+  // 서버에서 배열로 내려주니까 그대로 반환
+  return Array.isArray(res.data) ? res.data : [];
 }
 
 // 게임 목록 가져오기
@@ -98,4 +102,14 @@ export async function fetchMyPosts({ page = 1, limit = 10 } = {}) {
 export async function fetchMyBookmarkedPosts({ page = 1, limit = 10 } = {}) {
   const res = await api.get("/posts/bookmarks", { params: { page, limit } });
   return res.data; // { page, limit, posts }
+}
+
+export async function updatePost(postId, { caption, gameId }) {
+  const res = await api.put(`/posts/${postId}`, { caption, gameId });
+  return res.data;
+}
+
+export async function deletePost(postId) {
+  const res = await api.delete(`/posts/${postId}`);
+  return res.data;
 }

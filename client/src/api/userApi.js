@@ -61,3 +61,38 @@ export async function fetchMyBookmarkedPosts() {
   const res = await api.get("/users/me/bookmarks");
   return res.data.posts || [];
 }
+
+// 특정 유저 프로필 정보 가져오기
+export async function fetchUserProfile(userId) {
+  const res = await api.get(`/users/${userId}`);
+  return res.data; // { id, username, nickname, avatarUrl, bio, ... } 형태 기대
+}
+
+// 특정 유저가 작성한 게시글 목록 가져오기
+export async function fetchUserPosts(userId, { page = 1, limit = 12 } = {}) {
+  const res = await api.get(`/posts/users/${userId}`, {
+    params: { page, limit },
+  });
+  return res.data;
+}
+
+export async function blockUser(targetUserId) {
+  const res = await api.post(`/users/${targetUserId}/block`);
+  return res.data;
+}
+
+export async function unblockUser(targetUserId) {
+  const res = await api.delete(`/users/${targetUserId}/block`);
+  return res.data;
+}
+
+// 신고
+export async function reportUser(targetUserId, reason) {
+  const res = await api.post("/users/reports", { targetUserId, reason });
+  return res.data;
+}
+
+export async function reportPost(postId, reason) {
+  const res = await api.post("/users/reports", { targetPostId: postId, reason });
+  return res.data;
+}

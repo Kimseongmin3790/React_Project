@@ -9,6 +9,8 @@ import ChatPage from "./pages/ChatPage";
 import ProfileEditPage from "./pages/ProfileEditPage";
 import MyPage from "./pages/MyPage";
 import GameRankingPage from "./pages/GameRankingPage";
+import SearchResultsPage from "./pages/SearchResultsPage";
+import UserProfilePage from "./pages/UserProfilePage";
 import { AuthProvider, RequireAuth } from "./context/AuthContext";
 
 function App() {
@@ -63,6 +65,20 @@ function App() {
           <Route path="/ranking" element={
             <RequireAuth>
               <GameRankingPage />
+            </RequireAuth>
+          }
+          />
+
+          <Route path="/search" element={
+            <RequireAuth>
+              <SearchResultsPage />
+            </RequireAuth>
+          }
+          />
+
+          <Route path="/users/:userId" element={
+            <RequireAuth>
+              <UserProfilePage />
             </RequireAuth>
           }
           />

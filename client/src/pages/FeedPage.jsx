@@ -10,8 +10,8 @@ import {
   CardContent,
   CardMedia,
   TextField,
-  MenuItem,
   Button,
+  MenuItem,
   List,
   ListItemButton,
   ListItemText,
@@ -22,6 +22,9 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import ShareIcon from "@mui/icons-material/Share";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import Menu from "@mui/material/Menu";
+import { useTheme } from "@mui/material/styles";
 
 import { useAuth } from "../context/AuthContext";
 import { buildFileUrl } from "../utils/url";
@@ -40,9 +43,17 @@ import {
   bookmarkPost,
   unbookmarkPost,
   createComment,
+  deletePost,
+  updatePost
 } from "../api/postApi";
+import {
+  blockUser,
+  reportPost
+} from "../api/userApi";
 import PostDetailDialog from "../components/post/postDetail";
+import CreatePostDialog from "../components/post/CreatePostDialog";
 import MainHeader from "../components/layout/MainHeader"; // 공통 헤더
+import SideNav from "../components/layout/SideNav";
 
 const API_ORIGIN = "http://localhost:3020";
 
@@ -94,6 +105,8 @@ function FeedPage() {
   const [selectedGameId, setSelectedGameId] = useState("");
 
   const [selectedMenu, setSelectedMenu] = useState("main");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState(null);
@@ -110,6 +123,18 @@ function FeedPage() {
 
   // 검색창(지금은 UI용)
   const [searchText, setSearchText] = useState("");
+
+  const [sort, setSort] = useState("latest");
+  const [period, setPeriod] = useState("all");
+  const [gameFilter, setGameFilter] = useState("");
+
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
+  const [postMenuAnchor, setPostMenuAnchor] = useState(null);
+  const [postMenuTarget, setPostMenuTarget] = useState(null);
+
+  const theme = useTheme();
 
   const fetchRelation = useCallback(async (targetUserId) => {
     try {
@@ -178,7 +203,7 @@ function FeedPage() {
     setSelectedMenu(key);
 
     if (key === "write") {
-      navigate("/create");
+      setCreateOpen(true);
     } else if (key === "profile") {
       navigate("/me");
     } else if (key === "chat") {
@@ -189,6 +214,11 @@ function FeedPage() {
     } else if (key === "ranking") {
       navigate("/ranking");
     }
+  };
+
+  const handlePostCreated = () => {
+    // 값만 바꿔주면 useEffect가 다시 돌면서 위 loadFeed가 실행됨
+    setReloadKey((k) => k + 1);
   };
 
   // 랭킹 페이지에서 게임 선택 후 돌아왔을 때 필터 유지
@@ -213,27 +243,41 @@ function FeedPage() {
 
   // 피드 로딩
   useEffect(() => {
-    async function loadFeed() {
-      try {
-        setLoading(true);
-        setError("");
+    let cancelled = false;
 
-        const res = await fetchFeed({
-          page: 1,
-          limit: 10,
-          gameId: selectedGameId || undefined,
+    async function loadFeed() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const list = await fetchFeed({
+          sort,
+          period,
+          gameId: gameFilter,
         });
 
-        setPosts(res.posts || []);
+        if (!cancelled) {
+          setPosts(Array.isArray(list) ? list : []);
+        }
       } catch (err) {
-        console.error("피드 가져오기 실패:", err);
-        setError("피드를 불러오는 중 오류가 발생했습니다.");
+        console.error("피드 로딩 실패:", err);
+        if (!cancelled) {
+          setError("피드를 불러오는 중 오류가 발생했습니다.");
+          setPosts([]);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
+
     loadFeed();
-  }, [selectedGameId]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sort, period, gameFilter, reloadKey]);
 
   // 🔔 알림 요약 + 소켓 연결
   useEffect(() => {
@@ -254,9 +298,9 @@ function FeedPage() {
                 item.id && n.id
                   ? item.id === n.id
                   : item.type === n.type &&
-                    item.postId === n.postId &&
-                    item.roomId === n.roomId &&
-                    item.createdAt === n.createdAt
+                  item.postId === n.postId &&
+                  item.roomId === n.roomId &&
+                  item.createdAt === n.createdAt
               );
               if (exists) return prev;
               return [n, ...prev].slice(0, 20);
@@ -311,6 +355,13 @@ function FeedPage() {
       }
     });
   }, [user, posts, relations, relationLoading, fetchRelation]);
+
+  useEffect(() => {
+    (async () => {
+      const list = await fetchFeed({ sort, period, game: gameFilter });
+      setPosts(list);
+    })();
+  }, [sort, period, gameFilter]);
 
   // 좋아요 토글
   const handleToggleLike = async (postId, currentIsLiked) => {
@@ -429,107 +480,115 @@ function FeedPage() {
     }
   };
 
+  const handlePostUpdatedFromDetail = (updatedPost) => {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === updatedPost.id
+          ? {
+            ...p,
+            isLiked: updatedPost.isLiked,
+            isBookmarked: updatedPost.isBookmarked,
+            likeCount: updatedPost.likeCount,
+            commentCount: updatedPost.commentCount,
+          }
+          : p
+      )
+    );
+  };
+
+  const handleOpenPostMenu = (event, postId) => {
+    setPostMenuAnchor(event.currentTarget);
+    setPostMenuTarget(postId);
+  };
+
+  const handleClosePostMenu = () => {
+    setPostMenuAnchor(null);
+    setPostMenuTarget(null);
+  };
+
+  // 수정/삭제 클릭 핸들러 (삭제만 먼저)
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm("이 게시글을 삭제하시겠습니까?")) return;
+    try {
+      await deletePost(postId);
+      // 피드 다시 로딩
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      console.error("deletePost error:", err);
+      alert("게시글 삭제 중 오류가 발생했습니다.");
+    } finally {
+      handleClosePostMenu();
+    }
+  };
+
+  // (캡션만 수정하는 간단 버전 예시)
+  const handleEditPost = (post) => {
+    const newCaption = window.prompt("새 설명을 입력하세요", post.caption || "");
+    if (newCaption == null) return;
+    (async () => {
+      try {
+        await updatePost(post.id, {
+          caption: newCaption,
+          gameId: post.gameId, // 게임 변경 없이 유지
+        });
+        setReloadKey((k) => k + 1);
+      } catch (err) {
+        console.error("updatePost error:", err);
+        alert("게시글 수정 중 오류가 발생했습니다.");
+      } finally {
+        handleClosePostMenu();
+      }
+    })();
+  };
+
+  const handleReportPost = async (postId) => {
+    const reason = window.prompt("신고 사유를 입력하세요");
+    if (!reason) return;
+
+    try {
+      await reportPost(postId, reason);
+      alert("신고가 접수되었습니다.");
+    } catch (err) {
+      console.error("reportPost error:", err);
+      alert("신고 처리 중 오류가 발생했습니다.");
+    } finally {
+      handleClosePostMenu();
+    }
+  };
+
+  const handleBlockUser = async (targetUserId) => {
+    if (!window.confirm("이 사용자를 차단하시겠습니까?")) return;
+
+    try {
+      await blockUser(targetUserId);
+      alert("사용자가 차단되었습니다.");
+    } catch (err) {
+      console.error("blockUser error:", err);
+      alert("차단 처리 중 오류가 발생했습니다.");
+    } finally {
+      handleClosePostMenu();
+    }
+  };
+
+  const handleClickUserProfile = (postUserId) => {
+    if (!postUserId) return;
+
+    // 내 글이면 /me, 다른 유저면 /users/:id
+    if (user && user.id === postUserId) {
+      navigate("/me");
+    } else {
+      navigate(`/users/${postUserId}`);
+    }
+  };
+
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f5f5f5" }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: theme.palette.background.default }}>
       {/* ┌──────────────── 왼쪽 사이드바 ────────────────┐ */}
-      <Box
-        sx={{
-          width: 200,
-          bgcolor: "#b0b0b0",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* 상단 로고 영역 */}
-        <Box
-          sx={{
-            p: 2,
-            borderBottom: "1px solid rgba(0,0,0,0.1)",
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          <Box
-            sx={{
-              width: 90,
-              height: 90,
-              borderRadius: "50%",
-              bgcolor: "#e0e0e0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}
-          >
-            <Box
-              component="img"
-              src="/GClipLogo.png"
-              alt="GClip 로고"
-              sx={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
-            />
-          </Box>
-        </Box>
-
-        {/* 메뉴 리스트 */}
-        <List sx={{ flexGrow: 1, p: 0 }}>
-          <ListItemButton
-            selected={selectedMenu === "main"}
-            onClick={() => handleMenuClick("main")}
-          >
-            <ListItemText primary="메인" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "ranking"}
-            onClick={() => handleMenuClick("ranking")}
-          >
-            <ListItemText primary="인기 TOP 10 게임" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "chat"}
-            onClick={() => handleMenuClick("chat")}
-          >
-            <ListItemText primary="실시간 채팅" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "write"}
-            onClick={() => handleMenuClick("write")}
-          >
-            <ListItemText primary="글 쓰기" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "profile"}
-            onClick={() => handleMenuClick("profile")}
-          >
-            <ListItemText primary="프로필" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "more"}
-            onClick={() => handleMenuClick("more")}
-          >
-            <ListItemText primary="더보기" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "logout"}
-            onClick={() => handleMenuClick("logout")}
-          >
-            <ListItemText primary="로그아웃" />
-          </ListItemButton>
-        </List>
-      </Box>
+      <SideNav selectedMenu={selectedMenu} onMenuClick={handleMenuClick} />
 
       {/* ┌──────────────── 오른쪽 메인 영역 ────────────────┐ */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        {/* ✅ 공통 상단 헤더 */}
+        {/* 공통 상단 헤더 */}
         <MainHeader
           user={user}
           unreadTotal={unreadTotal}
@@ -542,10 +601,14 @@ function FeedPage() {
           searchPlaceholder="검색창"
           searchValue={searchText}
           onChangeSearch={(e) => setSearchText(e.target.value)}
+          onSearchSubmit={(value) => {
+            const q = (value || "").trim();
+            if (q) navigate(`/search?query=${encodeURIComponent(q)}`);
+          }}
         />
 
         {/* 게임 필터 바 */}
-        <Box sx={{ bgcolor: "#e0e0e0", p: 2 }}>
+        <Box sx={{ bgcolor: (theme) => theme.palette.action.hover, p: 2 }}>
           <Box sx={{ maxWidth: 260 }}>
             <TextField
               select
@@ -604,6 +667,8 @@ function FeedPage() {
             const relation = relations[post.userId];
             const isFollowing = relation?.isFollowing;
             const isRelationLoading = !!relationLoading[post.userId];
+            const targetPost = postMenuTarget && posts.find((p) => p.id === postMenuTarget);
+            const isMyTargetPost = targetPost && user && targetPost.userId === user.id;
 
             return (
               <Card key={post.id}>
@@ -616,12 +681,21 @@ function FeedPage() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    bgcolor: "#eeeeee",
+                    bgcolor: (theme) => theme.palette.action.hover, p: 2,
                   }}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Box 
+                    sx={{ 
+                      display: "flex", 
+                      alignItems: "center", 
+                      gap: 1, 
+                      cursor: "pointer", 
+                    }}
+                    onClick={() => handleClickUserProfile(post.userId)}
+                    >
+
                     <Avatar
-                      sx={{ width: 28, height: 28 }}
+                      sx={{ width: 60, height: 60 }}
                       src={buildFileUrl(post.avatarUrl) || ""}
                     >
                       {name[0]}
@@ -660,13 +734,21 @@ function FeedPage() {
                         {isRelationLoading
                           ? "..."
                           : isFollowing
-                          ? "팔로잉"
-                          : "팔로우"}
+                            ? "팔로잉"
+                            : "팔로우"}
                       </Button>
                     )}
+                    
                     <Typography variant="caption">
                       {new Date(post.createdAt).toLocaleDateString()}
                     </Typography>
+
+                    <IconButton
+                      size="small"
+                      onClick={(e) => handleOpenPostMenu(e, post.id)}
+                    >
+                      <MoreVertIcon fontSize="small" />
+                    </IconButton>                  
                   </Box>
                 </Box>
 
@@ -686,7 +768,7 @@ function FeedPage() {
                     sx={{
                       px: 1,
                       py: 0.5,
-                      bgcolor: "#f0f0f0",
+                      bgcolor: (theme) => theme.palette.action.hover, p: 2,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "flex-start",
@@ -834,6 +916,32 @@ function FeedPage() {
                     </Button>
                   </Box>
                 </CardContent>
+                
+                <Menu
+                  anchorEl={postMenuAnchor}
+                  open={Boolean(postMenuAnchor) && !!targetPost}
+                  onClose={handleClosePostMenu}
+                >
+                  {/* postMenuTarget에 해당하는 post 객체 찾아서 넘겨줌 */}
+                  {targetPost && isMyTargetPost && (
+                    <>
+                      <MenuItem onClick={() => handleEditPost(targetPost)}>수정</MenuItem>
+                      <MenuItem onClick={() => handleDeletePost(targetPost.id)}>삭제</MenuItem>
+                    </>
+                  )}
+
+                  {targetPost && !isMyTargetPost && (
+                    <>
+                      <MenuItem onClick={() => handleReportPost(targetPost.id)}>
+                        신고하기
+                      </MenuItem>
+                      <MenuItem onClick={() => handleBlockUser(targetPost.userId)}>
+                        이 사용자 차단
+                      </MenuItem>
+                    </>
+                  )}
+                </Menu>
+
               </Card>
             );
           })}
@@ -844,7 +952,16 @@ function FeedPage() {
           open={detailOpen}
           onClose={closeDetail}
           postId={detailPostId}
+          onPostUpdated={handlePostUpdatedFromDetail}
         />
+
+        {/* 글쓰기 모달 */}
+        <CreatePostDialog
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          onCreated={handlePostCreated}
+        />
+
       </Box>
     </Box>
   );

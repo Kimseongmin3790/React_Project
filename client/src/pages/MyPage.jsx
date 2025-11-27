@@ -11,11 +11,17 @@ import {
   CardMedia,
   TextField,
   Button,
+  Tabs,
+  Tab,
+  Dialog,
+  DialogTitle,
+  DialogContent,
   List,
   ListItemButton,
   ListItemText,
-  Tabs,
-  Tab,
+  ListItemAvatar,
+  Menu,
+  MenuItem
 } from "@mui/material";
 
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
@@ -23,6 +29,8 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import ShareIcon from "@mui/icons-material/Share";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { useTheme } from "@mui/material/styles";
 
 import { io } from "socket.io-client";
 import {
@@ -31,7 +39,11 @@ import {
 } from "../api/notificationApi";
 import { useAuth } from "../context/AuthContext";
 import { buildFileUrl } from "../utils/url";
-import { getFollowStats } from "../api/followApi";
+import { 
+  getFollowStats, 
+  fetchFollowerList, 
+  fetchFollowingList 
+} from "../api/followApi";
 import { useNavigate } from "react-router-dom";
 import {
   likePost,
@@ -39,6 +51,8 @@ import {
   bookmarkPost,
   unbookmarkPost,
   createComment,
+  updatePost,
+  deletePost
 } from "../api/postApi";
 import {
   fetchMyPosts,
@@ -46,7 +60,9 @@ import {
   fetchMyBookmarkedPosts,
 } from "../api/userApi";
 import PostDetailDialog from "../components/post/postDetail";
+import CreatePostDialog from "../components/post/CreatePostDialog";
 import MainHeader from "../components/layout/MainHeader"; // 🔥 공통 헤더
+import SideNav from "../components/layout/SideNav";
 
 const API_ORIGIN = "http://localhost:3020";
 
@@ -90,6 +106,8 @@ function MyPage() {
 
   // 왼쪽 메뉴 선택
   const [selectedMenu, setSelectedMenu] = useState("profile");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // 탭: 작성한 글 / 좋아요 / 북마크
   const [tab, setTab] = useState("posts"); // posts | likes | bookmarks
@@ -110,12 +128,23 @@ function MyPage() {
     followingCount: 0,
   });
 
+  const [followerDialogOpen, setFollowerDialogOpen] = useState(false);
+  const [followingDialogOpen, setFollowingDialogOpen] = useState(false);
+  const [followers, setFollowers] = useState([]);
+  const [followings, setFollowings] = useState([]);
+  const [followListLoading, setFollowListLoading] = useState(false);
+
   // 🔔 알림
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [notifications, setNotifications] = useState([]);
 
   // 검색창 (지금은 사용 X, UI만)
   const [searchText, setSearchText] = useState("");
+
+  const [postMenuAnchor, setPostMenuAnchor] = useState(null);
+  const [postMenuTarget, setPostMenuTarget] = useState(null);
+
+  const theme = useTheme();
 
   // ───────── 공통 /me 데이터 로딩 ─────────
   const loadMyData = useCallback(async () => {
@@ -141,7 +170,7 @@ function MyPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, reloadKey]);
 
   // 🔔 알림 요약 + 소켓
   useEffect(() => {
@@ -209,7 +238,7 @@ function MyPage() {
     if (key === "main") {
       navigate("/");
     } else if (key === "write") {
-      navigate("/create");
+      setCreateOpen(true);
     } else if (key === "profile") {
       navigate("/me");
     } else if (key === "chat") {
@@ -306,6 +335,36 @@ function MyPage() {
     }
   };
 
+  const openFollowersDialog = async () => {
+    if (!user) return;
+    setFollowListLoading(true);
+    try {
+      const list = await fetchFollowerList(user.id);
+      setFollowers(list || []);
+      setFollowerDialogOpen(true);
+    } catch (err) {
+      console.error("팔로워 목록 불러오기 실패:", err);
+      alert("팔로워 목록을 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      setFollowListLoading(false);
+    }
+  };
+
+  const openFollowingsDialog = async () => {
+    if (!user) return;
+    setFollowListLoading(true);
+    try {
+      const list = await fetchFollowingList(user.id);
+      setFollowings(list || []);
+      setFollowingDialogOpen(true);
+    } catch (err) {
+      console.error("팔로잉 목록 불러오기 실패:", err);
+      alert("팔로잉 목록을 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      setFollowListLoading(false);
+    }
+  };
+
   // 🔔 헤더에서 알림 버튼 눌러 메뉴 열릴 때 호출 → 모두 읽음 처리
   const handleNotificationsOpened = async () => {
     if (unreadTotal > 0) {
@@ -344,106 +403,79 @@ function MyPage() {
   const myLikeCount = likedPosts.length;
   const myBookmarkCount = bookmarkedPosts.length;
 
+  const handlePostUpdatedFromDetail = (updatedPost) => {
+    setMyPosts((prev) =>
+      prev.map((p) =>
+        p.id === updatedPost.id
+          ? {
+              ...p,
+              isLiked: updatedPost.isLiked,
+              isBookmarked: updatedPost.isBookmarked,
+              likeCount: updatedPost.likeCount,
+              commentCount: updatedPost.commentCount,
+            }
+          : p
+      )
+    );
+  };
+
+  const handlePostCreated = () => {
+    setReloadKey((k) => k + 1);
+  };
+
+  const handleOpenPostMenu = (event, postId) => {
+    setPostMenuAnchor(event.currentTarget);
+    setPostMenuTarget(postId);
+  };
+
+  const handleClosePostMenu = () => {
+    setPostMenuAnchor(null);
+    setPostMenuTarget(null);
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm("이 게시글을 삭제하시겠습니까?")) return;
+    try {
+      await deletePost(postId);
+      await loadMyData(); // ✅ /me 다시 로딩
+    } catch (err) {
+      console.error("마이페이지 삭제 실패:", err);
+      alert("게시글 삭제 중 오류가 발생했습니다.");
+    } finally {
+      handleClosePostMenu();
+    }
+  };
+
+  const handleEditPost = (post) => {
+    const newCaption = window.prompt(
+      "새 설명을 입력하세요",
+      post.caption || ""
+    );
+    if (newCaption == null) return;
+
+    (async () => {
+      try {
+        await updatePost(post.id, {
+          caption: newCaption,
+          gameId: post.gameId, // 게임은 그대로 유지
+        });
+        await loadMyData();
+      } catch (err) {
+        console.error("마이페이지 수정 실패:", err);
+        alert("게시글 수정 중 오류가 발생했습니다.");
+      } finally {
+        handleClosePostMenu();
+      }
+    })();
+  };
+
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f5f5f5" }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: (theme) => theme.palette.background.default }}>
       {/* ┌──────────────── 왼쪽 사이드바 ────────────────┐ */}
-      <Box
-        sx={{
-          width: 200,
-          bgcolor: "#b0b0b0",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* 상단 로고 영역 */}
-        <Box
-          sx={{
-            p: 2,
-            borderBottom: "1px solid rgba(0,0,0,0.1)",
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          <Box
-            sx={{
-              width: 90,
-              height: 90,
-              borderRadius: "50%",
-              bgcolor: "#e0e0e0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}
-          >
-            <Box
-              component="img"
-              src="/GClipLogo.png"
-              alt="GClip 로고"
-              sx={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
-            />
-          </Box>
-        </Box>
-
-        {/* 메뉴 리스트 */}
-        <List sx={{ flexGrow: 1, p: 0 }}>
-          <ListItemButton
-            selected={selectedMenu === "main"}
-            onClick={() => handleMenuClick("main")}
-          >
-            <ListItemText primary="메인" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "ranking"}
-            onClick={() => handleMenuClick("ranking")}
-          >
-            <ListItemText primary="인기 TOP 10 게임" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "chat"}
-            onClick={() => handleMenuClick("chat")}
-          >
-            <ListItemText primary="실시간 채팅" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "write"}
-            onClick={() => handleMenuClick("write")}
-          >
-            <ListItemText primary="글 쓰기" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "profile"}
-            onClick={() => handleMenuClick("profile")}
-          >
-            <ListItemText primary="프로필" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "more"}
-            onClick={() => handleMenuClick("more")}
-          >
-            <ListItemText primary="더보기" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "logout"}
-            onClick={() => handleMenuClick("logout")}
-          >
-            <ListItemText primary="로그아웃" />
-          </ListItemButton>
-        </List>
-      </Box>
+      <SideNav selectedMenu={selectedMenu} onMenuClick={handleMenuClick} />
 
       {/* ┌──────────────── 오른쪽 메인 영역 ────────────────┐ */}
-      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         {/* ✅ 공통 상단 헤더 사용 */}
         <MainHeader
           user={user}
@@ -457,6 +489,10 @@ function MyPage() {
           searchPlaceholder="검색창"
           searchValue={searchText}
           onChangeSearch={(e) => setSearchText(e.target.value)}
+          onSearchSubmit={(value) => {
+            const q = (value || "").trim();
+            if (q) navigate(`/search?query=${encodeURIComponent(q)}`);
+          }}
         />
 
         {/* 메인 컨테이너 */}
@@ -467,57 +503,101 @@ function MyPage() {
             py: 3,
             display: "flex",
             flexDirection: "column",
-            gap: 2,
+            gap: 3,
           }}
         >
           {/* 내 프로필 헤더 */}
-          <Card sx={{ mb: 2, p: 2, display: "flex", alignItems: "center" }}>
-            <Avatar
-              sx={{ width: 64, height: 64, mr: 2 }}
-              src={buildFileUrl(user.avatarUrl) || ""}
+          <Card sx={{ p: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                flexWrap: "wrap",
+              }}
             >
-              {user.nickname?.[0] || user.username?.[0] || "U"}
-            </Avatar>
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                {user.nickname || user.username}
-              </Typography>
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                @{user.username}
-              </Typography>
-              {user.bio && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  {user.bio}
-                </Typography>
-              )}
-              <Box sx={{ display: "flex", gap: 2, mt: 1, flexWrap: "wrap" }}>
-                <Typography variant="body2">게시글 {myPostCount}</Typography>
-                <Typography variant="body2">좋아요 {myLikeCount}</Typography>
-                <Typography variant="body2">
-                  북마크 {myBookmarkCount}
-                </Typography>
-                <Typography variant="body2">
-                  팔로워 {followStats.followerCount}
-                </Typography>
-                <Typography variant="body2">
-                  팔로잉 {followStats.followingCount}
-                </Typography>
+              {/* 프로필 사진 */}
+              <Avatar
+                sx={{ width: 96, height: 96 }}
+                src={buildFileUrl(user.avatarUrl) || ""}
+              >
+                {user.nickname?.[0] || user.username?.[0] || "U"}
+              </Avatar>
+
+              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                {/* username + 버튼 */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                    flexWrap: "wrap",
+                    mb: 2,
+                  }}
+                >
+                  <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                    {user.username}
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => navigate("/me/edit")}
+                    sx={{ textTransform: "none" }}
+                  >
+                    프로필 편집
+                  </Button>
+                </Box>
+
+                {/* 게시글 / 팔로워 / 팔로우 숫자 */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 3,
+                    flexWrap: "wrap",
+                    mb: 2,
+                    fontSize: 14,
+                  }}
+                >
+                  <Typography variant="body2">
+                    게시글 <b>{myPostCount}</b>
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ cursor: "pointer" }}
+                    onClick={openFollowersDialog}
+                  >
+                    팔로워 <b>{followStats.followerCount}</b>
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ cursor: "pointer" }}
+                    onClick={openFollowingsDialog}
+                  >
+                    팔로우 <b>{followStats.followingCount}</b>
+                  </Typography>
+                </Box>
+
+                {/* 닉네임 + 소개 */}
+                {user.nickname && (
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: "bold", mb: 0.5 }}
+                  >
+                    {user.nickname}
+                  </Typography>
+                )}
+                {user.bio && (
+                  <Typography variant="body2">{user.bio}</Typography>
+                )}
               </Box>
             </Box>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => navigate("/me/edit")}
-            >
-              프로필 수정
-            </Button>
           </Card>
 
           {/* 탭: 작성한 글 / 좋아요 / 북마크 */}
           <Tabs
             value={tab}
             onChange={handleTabChange}
-            sx={{ borderBottom: "1px solid #e0e0e0" }}
+            sx={{ borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}
           >
             <Tab label="작성한 글" value="posts" />
             <Tab label="좋아요한 글" value="likes" />
@@ -545,6 +625,7 @@ function MyPage() {
             </Card>
           )}
 
+          
           {/* 피드 카드들 */}
           {currentPosts.map((post) => {
             const liked = tab === "likes" ? true : !!post.isLiked;
@@ -552,6 +633,8 @@ function MyPage() {
             const name = post.nickname || post.username || "U";
             const caption = post.caption || "";
             const captionTooLong = caption.length > 50;
+            const isMyPost = user && post.userId === user.id;          
+            const targetPost = postMenuTarget && currentPosts.find((p) => p.id === postMenuTarget);
 
             return (
               <Card key={post.id}>
@@ -564,7 +647,7 @@ function MyPage() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    bgcolor: "#eeeeee",
+                    bgcolor: (theme) => theme.palette.action.hover, p: 2,
                   }}
                 >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -589,9 +672,20 @@ function MyPage() {
                       </Typography>
                     </Box>
                   </Box>
-                  <Typography variant="caption">
-                    {new Date(post.createdAt).toLocaleDateString()}
-                  </Typography>
+
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    <Typography variant="caption">
+                      {new Date(post.createdAt).toLocaleDateString()}
+                    </Typography>
+                    {isMyPost && (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleOpenPostMenu(e, post.id)}
+                      >
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </Box>
                 </Box>
 
                 {/* 2) 썸네일 */}
@@ -610,7 +704,7 @@ function MyPage() {
                     sx={{
                       px: 1,
                       py: 0.5,
-                      bgcolor: "#f0f0f0",
+                      bgcolor: (theme) => theme.palette.action.hover, p: 2,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "flex-start",
@@ -758,6 +852,18 @@ function MyPage() {
                     </Button>
                   </Box>
                 </CardContent>
+                <Menu
+                  anchorEl={postMenuAnchor}
+                  open={Boolean(postMenuAnchor) && !!targetPost}
+                  onClose={handleClosePostMenu}
+                >
+                  {targetPost && (
+                    <>
+                      <MenuItem onClick={() => handleEditPost(targetPost)}>수정</MenuItem>
+                      <MenuItem onClick={() => handleDeletePost(targetPost.id)}>삭제</MenuItem>
+                    </>
+                  )}
+                </Menu>
               </Card>
             );
           })}
@@ -766,7 +872,97 @@ function MyPage() {
             open={detailOpen}
             onClose={closeDetail}
             postId={detailPostId}
+            onPostUpdated={handlePostUpdatedFromDetail}
+          />          
+
+          <CreatePostDialog
+            open={createOpen}
+            onClose={() => setCreateOpen(false)}
+            onCreated={handlePostCreated}
           />
+
+          {/* 🔥 팔로워 목록 모달 */}
+          <Dialog
+            open={followerDialogOpen}
+            onClose={() => setFollowerDialogOpen(false)}
+            fullWidth
+            maxWidth="xs"
+          >
+            <DialogTitle>팔로워</DialogTitle>
+            <DialogContent dividers>
+              {followListLoading && (
+                <Typography variant="body2">불러오는 중...</Typography>
+              )}
+              {!followListLoading && followers.length === 0 && (
+                <Typography variant="body2">
+                  아직 팔로워가 없습니다.
+                </Typography>
+              )}
+              <List>
+                {followers.map((u) => (
+                  <ListItemButton
+                    key={u.id}
+                    onClick={() => {
+                      setFollowerDialogOpen(false);
+                      navigate(`/users/${u.id}`);
+                    }}
+                  >
+                    <ListItemAvatar>
+                      <Avatar src={buildFileUrl(u.avatarUrl) || ""}>
+                        {u.nickname?.[0] || u.username?.[0] || "U"}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={u.nickname || u.username}
+                      secondary={`@${u.username}`}
+                    />
+                  </ListItemButton>
+                ))}
+              </List>
+            </DialogContent>
+          </Dialog>
+
+          {/* 🔥 팔로우(팔로잉) 목록 모달 */}
+          <Dialog
+            open={followingDialogOpen}
+            onClose={() => setFollowingDialogOpen(false)}
+            fullWidth
+            maxWidth="xs"
+          >
+            <DialogTitle>팔로우</DialogTitle>
+            <DialogContent dividers>
+              {followListLoading && (
+                <Typography variant="body2">불러오는 중...</Typography>
+              )}
+              {!followListLoading && followings.length === 0 && (
+                <Typography variant="body2">
+                  아직 팔로우한 유저가 없습니다.
+                </Typography>
+              )}
+              <List>
+                {followings.map((u) => (
+                  <ListItemButton
+                    key={u.id}
+                    onClick={() => {
+                      setFollowingDialogOpen(false);
+                      navigate(`/users/${u.id}`);
+                    }}
+                  >
+                    <ListItemAvatar>
+                      <Avatar src={buildFileUrl(u.avatarUrl) || ""}>
+                        {u.nickname?.[0] || u.username?.[0] || "U"}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={u.nickname || u.username}
+                      secondary={`@${u.username}`}
+                    />
+                  </ListItemButton>
+                ))}
+              </List>
+            </DialogContent>
+          </Dialog>
+
         </Container>
       </Box>
     </Box>

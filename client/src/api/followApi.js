@@ -33,3 +33,15 @@ export async function getUserRelation(targetUserId) {
   const res = await api.get(`/users/${targetUserId}/relation`);
   return res.data; // { isMe, isFollowing, isFollower }
 }
+
+// 내가 팔로워하는 사람 목록 (팔로우 = following)
+export async function fetchFollowingList(userId) {  
+  const res = await api.get(`/users/${userId}/following`);
+  return res.data; // [{ id, username, nickname, avatarUrl }, ...]
+}
+
+// 나를 팔로우 하는 사람 목록 (팔로워 = followers)
+export async function fetchFollowerList(userId) {
+  const res = await api.get(`/users/${userId}/followers`);
+  return res.data; // [{ id, username, nickname, avatarUrl }, ...]
+}

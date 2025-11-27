@@ -38,7 +38,7 @@ function getMediaUrl(url) {
   return `${API_ORIGIN}${url}`;
 }
 
-function PostDetailDialog({ open, onClose, postId }) {
+function PostDetailDialog({ open, onClose, postId, onPostUpdated }) {
   const [post, setPost] = useState(null);
   const [loadingPost, setLoadingPost] = useState(false);
   const [postError, setPostError] = useState("");
@@ -101,10 +101,21 @@ function PostDetailDialog({ open, onClose, postId }) {
       } else {
         res = await likePost(post.id);
       }
+
       const { liked, likeCount } = res;
-      setPost((prev) =>
-        prev ? { ...prev, isLiked: liked ? 1 : 0, likeCount } : prev
-      );
+
+      setPost((prev) => {
+        if (!prev) return prev;
+        const next = {
+          ...prev,
+          isLiked: liked ? 1 : 0,
+          likeCount,
+        };
+        if (onPostUpdated) {
+          onPostUpdated(next);
+        }
+        return next;
+      });
     } catch (err) {
       console.error("상세 좋아요 토글 실패:", err);
     }
@@ -120,15 +131,24 @@ function PostDetailDialog({ open, onClose, postId }) {
       } else {
         res = await bookmarkPost(post.id);
       }
+
       const { bookmarked } = res;
-      setPost((prev) =>
-        prev ? { ...prev, isBookmarked: bookmarked ? 1 : 0 } : prev
-      );
+
+      setPost((prev) => {
+        if (!prev) return prev;
+        const next = {
+          ...prev,
+          isBookmarked: bookmarked ? 1 : 0,          
+        };
+        if (onPostUpdated) {
+          onPostUpdated(next);
+        }
+        return next;
+      });
     } catch (err) {
       console.error("상세 북마크 토글 실패:", err);
     }
   };
-
   const handleSubmitComment = async () => {
     if (!post) return;
     const text = commentInput.trim();
@@ -139,11 +159,17 @@ function PostDetailDialog({ open, onClose, postId }) {
       const newComment = await createComment(post.id, text);
       setComments((prev) => [...prev, newComment]);
       setCommentInput("");
-      setPost((prev) =>
-        prev
-          ? { ...prev, commentCount: (prev.commentCount || 0) + 1 }
-          : prev
-      );
+      setPost((prev) => {
+        if (!prev) return prev;
+        const next = {
+          ...prev,
+          commentCount: (prev.commentCount || 0) + 1,          
+        };
+        if (onPostUpdated) {
+          onPostUpdated(next);
+        }
+        return next;
+      });
     } catch (err) {
       console.error("상세 댓글 작성 실패:", err);
     } finally {
@@ -201,7 +227,7 @@ function PostDetailDialog({ open, onClose, postId }) {
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {/* 작성자 / 게임 / 시간 */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Avatar src={post.avatarUrl || ""}>
+              <Avatar src={getMediaUrl(post.avatarUrl) || ""}>
                 {post.nickname?.[0] || post.username?.[0] || "U"}
               </Avatar>
               <Box>
@@ -349,7 +375,7 @@ function PostDetailDialog({ open, onClose, postId }) {
                 >
                   <Avatar
                     sx={{ width: 28, height: 28, mr: 1 }}
-                    src={c.avatarUrl || ""}
+                    src={getMediaUrl(c.avatarUrl) || ""}
                   >
                     {c.nickname?.[0] || c.username?.[0] || "U"}
                   </Avatar>

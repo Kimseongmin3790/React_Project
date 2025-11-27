@@ -5,6 +5,7 @@ const db = require("../db")
 const authMiddleware = require("../middleware/auth");
 const path = require("path");
 const multer = require("multer");
+const userController = require("../controllers/userController");
 
 const avatarStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -434,5 +435,17 @@ router.post("/verify-password", authMiddleware, async (req, res) => {
     });
   }
 });
+
+router.get("/me/stats", authMiddleware, userController.getMyStats);
+
+router.get("/:userId", authMiddleware, userController.getUserProfile);
+
+router.get("/:userId/followers", authMiddleware, userController.listFollowers);
+router.get("/:userId/following", authMiddleware, userController.listFollowing);
+
+router.post("/:targetUserId/block", authMiddleware, userController.blockUser);
+router.delete("/:targetUserId/block", authMiddleware, userController.unblockUser);
+
+router.post("/reports", authMiddleware, userController.createReport);
 
 module.exports = router;

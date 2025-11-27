@@ -13,6 +13,8 @@ const postRouter = require('./routes/post');
 const gameRouter = require('./routes/game');
 const chatRouter = require('./routes/chat');
 const notificationRouter = require('./routes/notification');
+const searchRouter = require('./routes/search');
+const tagRouter = require('./routes/tag');
 
 const initChatSocket = require('./socket/chatSocket');
 const { setIo } = require('./socket/socketManager');
@@ -34,6 +36,8 @@ app.use('/api/posts', postRouter);
 app.use('/api/games', gameRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/notifications', notificationRouter);
+app.use('/api/search', searchRouter);
+app.use('/api/tags', tagRouter);
 
 // http 서버로 감싸기
 const server = http.createServer(app);

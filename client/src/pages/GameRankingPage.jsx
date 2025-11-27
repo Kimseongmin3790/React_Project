@@ -6,9 +6,6 @@ import {
   Typography,
   TextField,
   MenuItem,
-  List,
-  ListItemButton,
-  ListItemText,
   Card,
   CardContent,
   LinearProgress,
@@ -19,10 +16,13 @@ import { useAuth } from "../context/AuthContext";
 import { fetchGameRanking } from "../api/gameApi";
 import { io } from "socket.io-client";
 import {
-    getNotificationSummary,
-    markAllNotificationsRead
+  getNotificationSummary,
+  markAllNotificationsRead,
 } from "../api/notificationApi";
 import MainHeader from "../components/layout/MainHeader";
+import SideNav from "../components/layout/SideNav";
+import CreatePostDialog from "../components/post/CreatePostDialog";
+import { useTheme } from "@mui/material/styles";
 
 function normalizeNotification(raw) {
   if (!raw) return null;
@@ -55,13 +55,17 @@ function normalizeNotification(raw) {
 function GameRankingPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const theme = useTheme();
 
   const [selectedMenu, setSelectedMenu] = useState("ranking");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
   const [range, setRange] = useState("7"); // "7" | "30" | "all"
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
+
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [notifications, setNotifications] = useState([]);
 
@@ -100,11 +104,7 @@ function GameRankingPage() {
         const totalComments = g.totalComments ?? g.total_comments ?? 0;
 
         // 서버에서 score / rankScore / hotScore 같은 걸 주면 그거 우선 사용
-        const apiScore =
-          g.score ??
-          g.rankScore ??
-          g.hotScore ??
-          null;
+        const apiScore = g.score ?? g.rankScore ?? g.hotScore ?? null;
 
         // 없으면 프론트에서 계산 (가중치는 필요에 따라 조절해도 됨)
         const fallbackScore =
@@ -140,7 +140,7 @@ function GameRankingPage() {
 
   useEffect(() => {
     loadRanking(range);
-  }, [range]);
+  }, [range, reloadKey]);
 
   useEffect(() => {
     if (!user) return;
@@ -209,7 +209,7 @@ function GameRankingPage() {
     } else if (key === "chat") {
       navigate("/chat");
     } else if (key === "write") {
-      navigate("/create");
+      setCreateOpen(true);
     } else if (key === "profile") {
       navigate("/me");
     } else if (key === "more") {
@@ -225,30 +225,29 @@ function GameRankingPage() {
     navigate("/", { state: { initialGameId: gameId } });
   };
 
-   // 🔔 헤더에서 알림 메뉴가 열릴 때(아이콘 클릭 시) 호출 → 모두 읽음 처리
+  // 🔔 헤더에서 알림 메뉴 열릴 때 → 모두 읽음 처리
   const handleNotificationsOpened = async () => {
     if (unreadTotal > 0) {
-        try {
+      try {
         await markAllNotificationsRead();
         setUnreadTotal(0);
-        } catch (err) {
+      } catch (err) {
         console.error("알림 읽음 처리 실패:", err);
-        }
+      }
     }
   };
 
-    // 🔔 개별 알림 클릭 시 동작
+  // 🔔 개별 알림 클릭 시 동작
   const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
-        navigate("/chat");
+      navigate("/chat");
     } else if (
-        n.type === "FOLLOWED_USER_POST" ||
-        n.type === "FOLLOWED_POST"
+      n.type === "FOLLOWED_USER_POST" ||
+      n.type === "FOLLOWED_POST"
     ) {
-        // 나중에 /posts/:id 로 바로 이동하게 바꿔도 됨
-        navigate("/");
+      navigate("/");
     } else {
-        console.log("unknown notification type:", n);
+      console.log("unknown notification type:", n);
     }
   };
 
@@ -267,107 +266,25 @@ function GameRankingPage() {
     );
   }
 
+  const handlePostCreated = () => {
+    setReloadKey((k) => k + 1);
+  };
+
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f5f5f5" }}>
-      {/* ┌──────────────── 왼쪽 사이드바 ────────────────┐ */}
-      <Box
-        sx={{
-          width: 200,
-          bgcolor: "#b0b0b0",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* 상단 로고 영역 */}
-        <Box
-          sx={{
-            p: 2,
-            borderBottom: "1px solid rgba(0,0,0,0.1)",
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          <Box
-            sx={{
-              width: 90,
-              height: 90,
-              borderRadius: "50%",
-              bgcolor: "#e0e0e0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}
-          >
-            <Box
-              component="img"
-              src="/GClipLogo.png"
-              alt="GClip 로고"
-              sx={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
-            />
-          </Box>
-        </Box>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: theme.palette.background.default,
+        color: theme.palette.text.primary,
+      }}
+    >
+      {/* 왼쪽 사이드바 (다크모드는 SideNav 안에서 처리됨) */}
+      <SideNav selectedMenu={selectedMenu} onMenuClick={handleMenuClick} />
 
-        {/* 메뉴 리스트 */}
-        <List sx={{ flexGrow: 1, p: 0 }}>
-          <ListItemButton
-            selected={selectedMenu === "main"}
-            onClick={() => handleMenuClick("main")}
-          >
-            <ListItemText primary="메인" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "ranking"}
-            onClick={() => handleMenuClick("ranking")}
-          >
-            <ListItemText primary="인기 TOP 10 게임" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "chat"}
-            onClick={() => handleMenuClick("chat")}
-          >
-            <ListItemText primary="실시간 채팅" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "write"}
-            onClick={() => handleMenuClick("write")}
-          >
-            <ListItemText primary="글 쓰기" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "profile"}
-            onClick={() => handleMenuClick("profile")}
-          >
-            <ListItemText primary="프로필" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "more"}
-            onClick={() => handleMenuClick("more")}
-          >
-            <ListItemText primary="더보기" />
-          </ListItemButton>
-
-          <ListItemButton
-            selected={selectedMenu === "logout"}
-            onClick={() => handleMenuClick("logout")}
-          >
-            <ListItemText primary="로그아웃" />
-          </ListItemButton>
-        </List>
-      </Box>
-
-      {/* ┌──────────────── 오른쪽 메인 영역 ────────────────┐ */}
+      {/* 오른쪽 메인 영역 */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        {/* 상단 검은바 (Feed/MyPage랑 동일 스타일) */}
+        {/* 상단 공통 헤더 (이미 다크모드 대응) */}
         <MainHeader
           user={user}
           unreadTotal={unreadTotal}
@@ -380,6 +297,10 @@ function GameRankingPage() {
           searchPlaceholder="검색창"
           searchValue={searchText}
           onChangeSearch={(e) => setSearchText(e.target.value)}
+          onSearchSubmit={(value) => {
+            const q = (value || "").trim();
+            if (q) navigate(`/search?query=${encodeURIComponent(q)}`);
+          }}
         />
 
         {/* 메인 컨테이너 */}
@@ -435,7 +356,7 @@ function GameRankingPage() {
           )}
 
           {!loading && games.length === 0 && !error && (
-            <Card>
+            <Card sx={{ bgcolor: theme.palette.background.paper }}>
               <CardContent>
                 <Typography variant="body1">
                   아직 랭킹에 표시할 게임이 없습니다. 게시글을 먼저 올려보세요!
@@ -450,7 +371,12 @@ function GameRankingPage() {
             const percent = Math.round(((g.score || 0) / maxScore) * 100);
 
             return (
-              <Card key={g.id ?? g.gameId ?? idx}>
+              <Card
+                key={g.id ?? g.gameId ?? idx}
+                sx={{
+                  bgcolor: theme.palette.background.paper,
+                }}
+              >
                 <CardContent
                   sx={{
                     display: "flex",
@@ -477,7 +403,7 @@ function GameRankingPage() {
                     </Typography>
                     <Typography
                       variant="body2"
-                      sx={{ color: "text.secondary" }}
+                      sx={{ color: theme.palette.text.secondary }}
                     >
                       게시글 {g.postCount}개 · 좋아요 {g.totalLikes}개 · 댓글{" "}
                       {g.totalComments}개
@@ -488,7 +414,17 @@ function GameRankingPage() {
                       <LinearProgress
                         variant="determinate"
                         value={percent}
-                        sx={{ height: 6, borderRadius: 3 }}
+                        sx={{
+                          height: 6,
+                          borderRadius: 3,
+                          backgroundColor:
+                            theme.palette.mode === "dark"
+                              ? theme.palette.grey[800]
+                              : theme.palette.grey[200],
+                          "& .MuiLinearProgress-bar": {
+                            borderRadius: 3,
+                          },
+                        }}
                       />
                     </Box>
                   </Box>
@@ -504,6 +440,12 @@ function GameRankingPage() {
               </Card>
             );
           })}
+
+          <CreatePostDialog
+            open={createOpen}
+            onClose={() => setCreateOpen(false)}
+            onCreated={handlePostCreated}
+          />
         </Container>
       </Box>
     </Box>

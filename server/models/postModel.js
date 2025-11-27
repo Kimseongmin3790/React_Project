@@ -206,10 +206,98 @@ async function getMyBookmarkedPosts({ userId, page = 1, limit = 10 }) {
   return rows;
 }
 
+// 3) 새 listPosts: 지금은 getFeed를 그대로 래핑만 해도 됨
+async function listPosts(options) {
+  return getFeed(options);
+}
+
+async function listUserPosts({ authorUserId, page = 1, limit = 12, currentUserId }) {
+  const pageNum = Number.isFinite(page) ? Number(page) : 1;
+  const limitNum = Number.isFinite(limit) ? Number(limit) : 12;
+  const offset = (pageNum - 1) * limitNum;
+
+  const viewerId = currentUserId || 0;
+
+  const params = [viewerId, viewerId, authorUserId];
+
+  const sql = `
+    SELECT 
+      p.id,
+      p.user_id AS userId,
+      u.username,
+      u.nickname,
+      u.avatar_url AS avatarUrl,
+      g.id AS gameId,
+      g.name AS gameName,
+      g.slug AS gameSlug,
+      p.caption,
+      p.like_count AS likeCount,
+      p.comment_count AS commentCount,
+      p.created_at AS createdAt,
+      m.url AS thumbUrl,
+      m.media_type AS thumbType,
+      IF(pl.user_id IS NULL, 0, 1) AS isLiked,
+      IF(pb.user_id IS NULL, 0, 1) AS isBookmarked
+    FROM posts p
+    JOIN users u ON p.user_id = u.id
+    JOIN games g ON p.game_id = g.id
+    LEFT JOIN post_media m ON m.post_id = p.id AND m.sort_order = 0
+    LEFT JOIN post_likes pl ON pl.post_id = p.id AND pl.user_id = ?
+    LEFT JOIN post_bookmarks pb ON pb.post_id = p.id AND pb.user_id = ?
+    WHERE p.user_id = ?
+    ORDER BY p.created_at DESC
+    LIMIT ${offset}, ${limitNum}
+  `;
+
+  const [rows] = await pool.query(sql, params);
+  return rows;
+}
+
+// 글 내용/게임만 수정 (이미지 수정은 나중에 별도)
+async function updatePost(postId, userId, { caption, gameId }) {
+  const [result] = await pool.query(
+    `
+    UPDATE posts
+    SET caption = ?, game_id = ?
+    WHERE id = ? AND user_id = ?
+  `,
+    [caption, gameId, postId, userId]
+  );
+
+  return result.affectedRows; // 1이면 성공, 0이면 권한없음/없는글
+}
+
+async function deletePost(postId, userId) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // 관련 미디어 먼저 삭제
+    await conn.query("DELETE FROM post_media WHERE post_id = ?", [postId]);
+
+    const [result] = await conn.query(
+      "DELETE FROM posts WHERE id = ? AND user_id = ?",
+      [postId, userId]
+    );
+
+    await conn.commit();
+    return result.affectedRows;
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
 module.exports = {
   createPost,
   getFeed,
   getPostById,
   getMyPosts,
-  getMyBookmarkedPosts
+  getMyBookmarkedPosts,
+  listPosts,
+  listUserPosts,
+  updatePost,
+  deletePost,
 };

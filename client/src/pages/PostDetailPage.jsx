@@ -39,7 +39,7 @@ function getMediaUrl(url) {
   return `${API_ORIGIN}${url}`;
 }
 
-function PostDetailPage() {
+function PostDetailPage({ onPostUpdated }) {
   const { postId } = useParams();
   const navigate = useNavigate();
 
@@ -103,15 +103,18 @@ function PostDetailPage() {
       }
 
       const { liked, likeCount } = res;
-      setPost((prev) =>
-        prev
-          ? {
-              ...prev,
-              isLiked: liked ? 1 : 0,
-              likeCount,
-            }
-          : prev
-      );
+      setPost((prev) => {
+        if (!prev) return prev;
+        const next = {
+          ...prev,
+          isLiked: liked ? 1 : 0,
+          likeCount,
+        };
+        if (onPostUpdated) {
+          onPostUpdated(next);
+        }
+        return next;
+      })
     } catch (err) {
       console.error("상세 좋아요 토글 실패:", err);
     }
@@ -129,14 +132,17 @@ function PostDetailPage() {
       }
 
       const { bookmarked } = res;
-      setPost((prev) =>
-        prev
-          ? {
-              ...prev,
-              isBookmarked: bookmarked ? 1 : 0,
-            }
-          : prev
-      );
+      setPost((prev) => {
+        if (!prev) return prev;
+        const next = {
+          ...prev,
+          isBookmarked: bookmarked ? 1 : 0,          
+        };
+        if (onPostUpdated) {
+          onPostUpdated(next);
+        }
+        return next;
+      });
     } catch (err) {
       console.error("상세 북마크 토글 실패:", err);
     }

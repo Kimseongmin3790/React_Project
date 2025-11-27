@@ -2,6 +2,7 @@ const postModel = require('../models/postModel');
 const db = require("../db");
 const gameModel = require('../models/gameModel');
 const notificationService = require('../services/notificationService');
+const userStatsModel = require('../models/userStatsModel');
 
 exports.createPost = async (req, res) => {
   const conn = await db.getConnection();
@@ -72,6 +73,8 @@ exports.createPost = async (req, res) => {
     } catch (notifyErr) {
       console.error("notifyFollowersNewPost error:", notifyErr);
     }
+
+    await userStatsModel.updateOnNewPost(user.id);
 
     // 간단 응답
     res.status(201).json({
@@ -162,6 +165,8 @@ exports.likePost = async (req, res) => {
     const likeCount = rows[0]?.like_count ?? 0;
 
     await conn.commit();
+
+    await userStatsModel.updateOnReceivedLike(user.id);
 
     res.json({ liked: true, likeCount });
   } catch (err) {
@@ -349,6 +354,8 @@ exports.createComment = async (req, res) => {
 
     await conn.commit();
 
+    await userStatsModel.updateOnReceivedComment(user.id);
+
     // 프론트에서 바로 쓸 수 있게 작성자 정보 포함해서 리턴
     res.status(201).json({
       id: commentId,
@@ -433,5 +440,109 @@ exports.getMyBookmarkedPosts = async (req, res) => {
   } catch (err) {
     console.error("getMyBookmarkedPosts error:", err);
     res.status(500).json({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+exports.listPosts = async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    gameId,
+    sort = "latest",
+    period = "all",
+  } = req.query;
+
+  // 로그인 유저 ID (authMiddleware에서 넣어줬다고 가정)
+  const currentUserId = req.user ? req.user.id : null;
+
+  try {
+    const posts = await postModel.listPosts({
+      page,
+      limit,
+      gameId,
+      currentUserId,
+      sort,
+      period,
+    });
+
+    res.json(posts);
+  } catch (err) {
+    console.error("listPosts error:", err);
+    res.status(500).json({ error: "피드 조회 중 오류가 발생했습니다." });
+  }
+};
+
+exports.listUserPosts = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const viewerId = req.user.id; // 현재 로그인한 유저 (좋아요/북마크 표시용)
+
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 12;
+
+    const posts = await postModel.listUserPosts({
+      authorUserId: Number(userId),
+      page,
+      limit,
+      currentUserId: viewerId,
+    });
+
+    res.json(posts); // 프론트에서는 배열 그대로 받음
+  } catch (err) {
+    console.error("listUserPosts error:", err);
+    res.status(500).json({ error: "유저 게시글 조회 중 오류가 발생했습니다." });
+  }
+};
+
+// PUT /api/posts/:postId
+exports.updatePost = async (req, res) => {
+  try {
+    const postId = Number(req.params.postId);
+    const userId = req.user.id; // authMiddleware에서 넣어준 값이라고 가정
+
+    const { caption, gameId } = req.body;
+    if (!caption || !gameId) {
+      return res
+        .status(400)
+        .json({ message: "caption과 gameId는 필수입니다." });
+    }
+
+    const affected = await postModel.updatePost(postId, userId, {
+      caption,
+      gameId,
+    });
+
+    if (affected === 0) {
+      return res
+        .status(403)
+        .json({ message: "수정 권한이 없거나 존재하지 않는 게시글입니다." });
+    }
+
+    // 프론트에서 다시 피드를 불러오니까 최소 정보만
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("updatePost error:", err);
+    res.status(500).json({ message: "게시글 수정 중 오류가 발생했습니다." });
+  }
+};
+
+// DELETE /api/posts/:postId
+exports.deletePost = async (req, res) => {
+  try {
+    const postId = Number(req.params.postId);
+    const userId = req.user.id;
+
+    const affected = await postModel.deletePost(postId, userId);
+
+    if (affected === 0) {
+      return res
+        .status(403)
+        .json({ message: "삭제 권한이 없거나 존재하지 않는 게시글입니다." });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("deletePost error:", err);
+    res.status(500).json({ message: "게시글 삭제 중 오류가 발생했습니다." });
   }
 };

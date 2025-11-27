@@ -106,6 +106,7 @@ async function getRecentMessages(roomId, limit = 50) {
       m.sender_id AS senderId,
       u.username,
       u.nickname,
+      u.avatar_url AS avatarUrl,
       m.content,
       m.created_at AS createdAt
     FROM chat_message m
