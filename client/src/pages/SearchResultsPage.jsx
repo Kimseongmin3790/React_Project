@@ -15,16 +15,20 @@ import {
   Divider,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { io } from "socket.io-client";
+
 import { searchAll } from "../api/searchApi";
 import MainHeader from "../components/layout/MainHeader";
 import SideNav from "../components/layout/SideNav";
+import CreatePostDialog from "../components/post/CreatePostDialog";
+import PostDetailDialog from "../components/post/postDetail";
+
 import { useAuth } from "../context/AuthContext";
 import { buildFileUrl } from "../utils/url";
 import {
   markAllNotificationsRead,
   getNotificationSummary,
 } from "../api/notificationApi";
-import { io } from "socket.io-client";
 
 const API_ORIGIN = "http://localhost:3020";
 
@@ -82,13 +86,37 @@ function SearchResultsPage() {
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [notifications, setNotifications] = useState([]);
 
-  // 헤더 검색창 텍스트
-  const [searchText, setSearchText] = useState(query);
+  // 검색창 (헤더)
+  const [searchText, setSearchText] = useState(query || "");
 
-  // 사이드바 선택
-  const [selectedMenu, setSelectedMenu] = useState(null);
+  // 🔹 사이드바 / 모달 상태
+  const [selectedMenu, setSelectedMenu] = useState("main");
+  const [createOpen, setCreateOpen] = useState(false);
 
-  // 🔔 알림 소켓 + 요약
+  // 🔹 게시글 상세 모달 상태
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailPostId, setDetailPostId] = useState(null);
+
+  // ───────── 사이드바 메뉴 클릭 핸들러 ─────────
+  const handleMenuClick = (key) => {
+    setSelectedMenu(key);
+
+    if (key === "main") navigate("/");
+    else if (key === "ranking") navigate("/ranking");
+    else if (key === "chat") navigate("/chat");
+    else if (key === "write") {
+      // ✅ 글쓰기 → 모달 오픈
+      setCreateOpen(true);
+    } else if (key === "profile") navigate("/me");
+    else if (key === "more") {
+      // TODO: 더보기(계정 설정, 다크모드 등) 열기
+    } else if (key === "logout") {
+      logout();
+      window.location.href = "/login";
+    }
+  };
+
+  // ───────── 알림 + 소켓 ─────────
   useEffect(() => {
     if (!user) return;
 
@@ -144,11 +172,9 @@ function SearchResultsPage() {
     };
   }, [user]);
 
-  // query 변경될 때 검색 + 헤더 검색칸 동기화
+  // ───────── 검색 결과 로딩 ─────────
   useEffect(() => {
-    setSearchText(query);
     if (!query.trim()) return;
-
     (async () => {
       try {
         setLoading(true);
@@ -170,7 +196,7 @@ function SearchResultsPage() {
     navigate(`/search?query=${encodeURIComponent(q)}`);
   };
 
-  // 🔔 헤더에서 알림 버튼 눌러 메뉴 열릴 때 호출 → 모두 읽음 처리
+  // 🔔 헤더에서 알림 버튼 눌러 메뉴 열릴 때 → 모두 읽음 처리
   const handleNotificationsOpened = async () => {
     if (unreadTotal > 0) {
       try {
@@ -196,21 +222,33 @@ function SearchResultsPage() {
     }
   };
 
-  // ───────── 사이드바 메뉴 클릭 ─────────
-  const handleMenuClick = (key) => {
-    setSelectedMenu(key);
+  // ───────── PostDetail 모달 관련 ─────────
+  const openDetail = (postId) => {
+    setDetailPostId(postId);
+    setDetailOpen(true);
+  };
 
-    if (key === "main") navigate("/");
-    else if (key === "ranking") navigate("/ranking");
-    else if (key === "chat") navigate("/chat");
-    else if (key === "write") navigate("/create");
-    else if (key === "profile") navigate("/me");
-    else if (key === "more") {
-      // 더보기 눌렀을 때 동작이 있으면 추가
-    } else if (key === "logout") {
-      logout();
-      window.location.href = "/login";
-    }
+  const closeDetail = () => {
+    setDetailPostId(null);
+    setDetailOpen(false);
+  };
+
+  // 상세 모달에서 좋아요/북마크/댓글 수 변경 시 검색 결과 리스트에도 반영
+  const handlePostUpdatedFromDetail = (updatedPost) => {
+    setData((prev) => ({
+      ...prev,
+      posts: (prev.posts || []).map((p) =>
+        p.id === updatedPost.id
+          ? {
+              ...p,
+              isLiked: updatedPost.isLiked,
+              isBookmarked: updatedPost.isBookmarked,
+              likeCount: updatedPost.likeCount,
+              commentCount: updatedPost.commentCount,
+            }
+          : p
+      ),
+    }));
   };
 
   // ───────── 탭별 렌더링 헬퍼 ─────────
@@ -243,51 +281,44 @@ function SearchResultsPage() {
 
   const renderPosts = () => {
     if (!data.posts.length) {
-        return <Typography>검색된 피드가 없습니다.</Typography>;
+      return <Typography>검색된 클립이 없습니다.</Typography>;
     }
-
-    return (
-        <Box
-        sx={{
-            display: "grid",
-            gridTemplateColumns: {
-            xs: "repeat(3, 1fr)",
-            },
-            gap: 0.5,
-        }}
-        >
-        {data.posts.map((p) => (
-            <Box
-            key={p.id}
+    return data.posts.map((p) => (
+      <Card
+        key={p.id}
+        sx={{ mb: 2, cursor: "pointer" }}
+        onClick={() => openDetail(p.id)} // ✅ 상세 모달 오픈
+      >
+        {p.thumbnailUrl && (
+          <CardMedia
+            component={p.thumbType === "VIDEO" ? "video" : "img"}
+            src={getMediaUrl(p.thumbnailUrl)}
+            controls={p.thumbType === "VIDEO"}
+            sx={{ maxHeight: 280 }}
+          />
+        )}
+        <CardContent>
+          <Typography
+            variant="body2"
             sx={{
-                position: "relative",
-                width: "100%",
-                aspectRatio: "1 / 1",
-                overflow: "hidden",
-                cursor: "pointer",
-                bgcolor:
-                theme.palette.mode === "light"
-                    ? "#ddd"
-                    : theme.palette.grey[800],
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
             }}
-            onClick={() => navigate(`/posts/${p.id}`)}
-            >
-            {p.thumbnailUrl && (
-                <Box
-                component={p.thumbType === "VIDEO" ? "video" : "img"}
-                src={getMediaUrl(p.thumbnailUrl)}
-                controls={p.thumbType === "VIDEO"}
-                sx={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                }}
-                />
-            )}
-            </Box>
-        ))}
-        </Box>
-    );
+          >
+            {p.caption}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary", mt: 0.5, display: "block" }}
+          >
+            {p.gameName} · 좋아요 {p.likeCount ?? 0} · 댓글{" "}
+            {p.commentCount ?? 0}
+          </Typography>
+        </CardContent>
+      </Card>
+    ));
   };
 
   const renderTags = () => {
@@ -324,7 +355,6 @@ function SearchResultsPage() {
           mb: 0.5,
         }}
         onClick={() => {
-          // 게임별 피드 필터 페이지로 이동 (필요하다면 서버 필터랑 연결)
           navigate(`/?game=${encodeURIComponent(g.name)}`);
         }}
       >
@@ -333,20 +363,20 @@ function SearchResultsPage() {
     ));
   };
 
+  // ───────── RENDER ─────────
   return (
     <Box
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: theme.palette.background.default, // ✅ 다크모드 대응
+        bgcolor: theme.palette.background.default,
       }}
     >
-      {/* 사이드바 */}
+      {/* 왼쪽 사이드바 */}
       <SideNav selectedMenu={selectedMenu} onMenuClick={handleMenuClick} />
 
       {/* 오른쪽 메인 영역 */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        {/* 공통 상단 헤더 */}
         <MainHeader
           user={user}
           unreadTotal={unreadTotal}
@@ -362,8 +392,7 @@ function SearchResultsPage() {
           onSearchSubmit={handleSubmitSearch}
         />
 
-        {/* 콘텐츠 영역 */}
-        <Container maxWidth="md" sx={{ py: 3 }}>
+        <Container maxWidth="md" sx={{ py: 3, flexGrow: 1 }}>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
             "{query}" 검색 결과
           </Typography>
@@ -371,7 +400,7 @@ function SearchResultsPage() {
           <Tabs value={tab} onChange={handleChangeTab} sx={{ mb: 2 }}>
             <Tab label="통합" value="all" />
             <Tab label="유저" value="user" />
-            <Tab label="피드" value="post" />
+            <Tab label="클립" value="post" />
             <Tab label="태그" value="tag" />
             <Tab label="게임" value="game" />
           </Tabs>
@@ -389,7 +418,7 @@ function SearchResultsPage() {
                   <Divider sx={{ my: 2 }} />
 
                   <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-                    피드
+                    클립
                   </Typography>
                   {renderPosts()}
                   <Divider sx={{ my: 2 }} />
@@ -414,6 +443,20 @@ function SearchResultsPage() {
             </Box>
           )}
         </Container>
+
+        {/* 글쓰기 모달 */}
+        <CreatePostDialog
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+        />
+
+        {/* 게시글 상세 모달 */}
+        <PostDetailDialog
+          open={detailOpen}
+          onClose={closeDetail}
+          postId={detailPostId}
+          onPostUpdated={handlePostUpdatedFromDetail}
+        />
       </Box>
     </Box>
   );
