@@ -14,12 +14,9 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export async function fetchPostsByTag(tagName) {
-  const res = await api.get(`/tags/${encodeURIComponent(tagName)}/posts`);
-  return res.data;
-}
-
-export async function fetchTrendingTags() {
-  const res = await api.get("/tags/trending/list");
+export async function fetchTagFeed(tagName, params = {}) {
+  const res = await api.get(`/tags/${encodeURIComponent(tagName)}/posts`, {
+    params,
+  });
   return res.data;
 }

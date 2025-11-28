@@ -3,22 +3,30 @@ const db = require("../db");
 const gameModel = require('../models/gameModel');
 const notificationService = require('../services/notificationService');
 const userStatsModel = require('../models/userStatsModel');
+const achievementService = require('../services/achievementService');
+const { syncPostHashtags } = require("../services/hashtagService");
 
 exports.createPost = async (req, res) => {
   const conn = await db.getConnection();
+  let postId;
+  let game;
+  let caption;
+  let user;
   try {
-    const user = req.user;
+    user = req.user;
     if (!user) {
       return res.status(401).json({ message: "인증이 필요합니다." });
     }
 
-    const { gameId, caption } = req.body;
+    const { gameId, caption: rawCaption } = req.body;
+    caption = rawCaption || "";
+
     const gameIdNum = Number.parseInt(gameId, 10);
     if (!gameIdNum) {
       return res.status(400).json({ message: "유효한 게임을 선택해주세요." });
     }
 
-    const game = await gameModel.findById(gameIdNum);
+    game = await gameModel.findById(gameIdNum);
     if (!game) {
       return res.status(400).json({ message: "존재하지 않는 게임입니다." });
     }
@@ -37,9 +45,9 @@ exports.createPost = async (req, res) => {
     const [result] = await conn.execute(
       `INSERT INTO posts (user_id, game_id, caption)
        VALUES (?, ?, ?)`,
-      [user.id, gameIdNum, caption || ""]
+      [user.id, gameIdNum, caption]
     );
-    const postId = result.insertId;
+    postId = result.insertId;
 
     // 2) post_media INSERT (이미지 먼저, 그 다음 영상)
     let sortOrder = 0;
@@ -63,44 +71,72 @@ exports.createPost = async (req, res) => {
     }
 
     await conn.commit();
-
-    try {
-      await notificationService.notifyFollowersNewPost({
-        actor: user,
-        postId,
-        caption,
-      });      
-    } catch (notifyErr) {
-      console.error("notifyFollowersNewPost error:", notifyErr);
-    }
-
-    await userStatsModel.updateOnNewPost(user.id);
-
-    // 간단 응답
-    res.status(201).json({
-      message: "게시글이 등록되었습니다.",
-      post: {
-        id: postId,
-        userId: user.id,
-        username: user.username,
-        nickname: user.nickname,
-        avatarUrl: user.avatarUrl,
-        gameId: game.id,
-        gameName: game.name,
-        gameSlug: game.slug,
-        caption,
-        likeCount: 0,
-        commentCount: 0,
-        createdAt: new Date().toISOString(),
-      },
-    });
   } catch (err) {
     console.error("createPost error:", err);
-    await conn.rollback();
-    res.status(500).json({ message: "서버 오류가 발생했습니다." });
-  } finally {
+    try {
+      await conn.rollback();
+    } catch (rbErr) {
+      console.error("createPost rollback error:", rbErr);
+    }
     conn.release();
+    res.status(500).json({ message: "서버 오류가 발생했습니다." });
   }
+
+  // 해시태그 동기화
+  try {
+    await syncPostHashtags(postId, caption);
+  } catch (tagErr) {
+    console.log("syncPostHashtags error (createPost):", tagErr)
+  }
+
+  // 팔로워 알림
+  try {
+    await notificationService.notifyFollowersNewPost({
+      actor: user,
+      postId,
+      caption
+    });
+  } catch (notifyErr) {
+    console.error("notifyFollowersNewPost error:", notifyErr);
+  }
+
+  // 유저 통계 업데이트
+  try {
+    await userStatsModel.updateOnNewPost(user.id);
+  } catch (statsErr) {
+    console.error("updateOnNewPost error:", statsErr);
+  }
+
+  // 업적 체크 (새로 열린 업적이 있으면 반환됨)
+  let unlockedAchievements = [];
+  try {
+    unlockedAchievements = await achievementService.checkAndUnlockAll(
+      user.id
+    );
+  } catch (achErr) {
+    console.error("achievement check error (createPost):", achErr);
+  }
+
+  conn.release();
+
+  return res.status(201).json({
+    message: "게시글이 등록되었습니다.",
+    post: {
+      id: postId,
+      userId: user.id,
+      username: user.username,
+      nickname: user.nickname,
+      avatarUrl: user.avatarUrl,
+      gameId: game.id,
+      gameName: game.name,
+      gameSlug: game.slug,
+      caption,
+      likeCount: 0,
+      commentCount: 0,
+      createdAt: new Date().toISOString(),
+    },
+    unlockedAchievements,
+  });
 };
 
 // GET /api/posts  (피드 조회: 로그인 여부와 상관 없이 전체 피드)
@@ -138,8 +174,20 @@ exports.likePost = async (req, res) => {
   }
 
   const conn = await db.getConnection();
+  let postAuthorId = null;
+
   try {
     await conn.beginTransaction();
+
+    const [postRows] = await conn.execute(
+      `SELECT user_id FROM posts WHERE id = ?`,
+      [postId]
+    );
+    if (postRows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ message: "게시글을 찾을 수 없습니다." });
+    }
+    postAuthorId = postRows[0].user_id;
 
     // 이미 좋아요 되어있는지 확인
     const [exists] = await conn.execute(
@@ -147,7 +195,10 @@ exports.likePost = async (req, res) => {
       [postId, user.id]
     );
 
+    let inserted = false;
+
     if (exists.length === 0) {
+
       await conn.execute(
         `INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)`,
         [postId, user.id]
@@ -156,6 +207,7 @@ exports.likePost = async (req, res) => {
         `UPDATE posts SET like_count = like_count + 1 WHERE id = ?`,
         [postId]
       );
+      inserted = true;
     }
 
     const [rows] = await conn.execute(
@@ -166,9 +218,23 @@ exports.likePost = async (req, res) => {
 
     await conn.commit();
 
-    await userStatsModel.updateOnReceivedLike(user.id);
+    let unlockedAchievements = [];
 
-    res.json({ liked: true, likeCount });
+    if (inserted && postAuthorId && postAuthorId !== user.id) {
+      try {
+        await userStatsModel.updateOnReceivedLike(postAuthorId);
+
+        unlockedAchievements = await achievementService.checkAndUnlockAll(postAuthorId);
+
+        if (unlockedAchievements.length > 0) {
+          console.log("like로 언락된 업적:", unlockedAchievements.map((a) => a.code));
+        };
+      } catch (achErr) {
+        console.error("achievement check error (likePost):", achErr);
+      }
+    }
+
+    res.json({ liked: true, likeCount, unlockedAchievements });
   } catch (err) {
     console.error("likePost error:", err);
     await conn.rollback();
@@ -329,8 +395,22 @@ exports.createComment = async (req, res) => {
   }
 
   const conn = await db.getConnection();
+  let postAuthorId = null;
+  let commentId = null;
+  let createdAt = null;
+
   try {
     await conn.beginTransaction();
+
+    const [postRows] = await conn.execute(
+      `SELECT user_id FROM posts WHERE id = ?`,
+      [postId]
+    );
+    if (postRows.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({ message: "게시글을 찾을 수 없습니다." });
+    }
+    postAuthorId = postRows[0].user_id;
 
     // 1) 댓글 INSERT
     const [result] = await conn.execute(
@@ -340,7 +420,7 @@ exports.createComment = async (req, res) => {
       `,
       [postId, user.id, content.trim()]
     );
-    const commentId = result.insertId;
+    commentId = result.insertId;
 
     // 2) posts.comment_count 증가
     await conn.execute(
@@ -352,20 +432,42 @@ exports.createComment = async (req, res) => {
       [postId]
     );
 
+    const [cRows] = await conn.execute(
+      `SELECT created_at FROM comments WHERE id = ?`,
+      [commentId]
+    );
+    createdAt = cRows[0]?.created_at || new Date();
+
     await conn.commit();
 
-    await userStatsModel.updateOnReceivedComment(user.id);
+    let unlockedAchievements = [];
+    if (postAuthorId && postAuthorId !== user.id) {
+      try {
+        await userStatsModel.updateOnReceivedComment(postAuthorId);
+        unlockedAchievements =
+          await achievementService.checkAndUnlockAll(postAuthorId);
+        if (unlockedAchievements.length > 0) {
+          console.log(
+            "comment로 언락된 업적:",
+            unlockedAchievements.map((a) => a.code)
+          );
+        }
+      } catch (achErr) {
+        console.error("achievement check error (createComment):", achErr);
+      }
+    }
+
 
     // 프론트에서 바로 쓸 수 있게 작성자 정보 포함해서 리턴
     res.status(201).json({
-      id: commentId,
-      postId,
-      userId: user.id,
-      username: user.username,
-      nickname: user.nickname,
-      avatarUrl: user.avatarUrl,
-      content: content.trim(),
-      createdAt: new Date().toISOString(),
+      comment: {
+        id: commentId,
+        postId,
+        userId: user.id,
+        content,
+        createdAt,
+      },
+      unlockedAchievements,
     });
   } catch (err) {
     console.error("createComment error:", err);
@@ -497,10 +599,10 @@ exports.listUserPosts = async (req, res) => {
 // PUT /api/posts/:postId
 exports.updatePost = async (req, res) => {
   try {
-    const postId = Number(req.params.postId);
+    const postId = Number(req.params.postId);    
     const userId = req.user.id; // authMiddleware에서 넣어준 값이라고 가정
-
     const { caption, gameId } = req.body;
+
     if (!caption || !gameId) {
       return res
         .status(400)
@@ -518,7 +620,12 @@ exports.updatePost = async (req, res) => {
         .json({ message: "수정 권한이 없거나 존재하지 않는 게시글입니다." });
     }
 
-    // 프론트에서 다시 피드를 불러오니까 최소 정보만
+    try {
+      await syncPostHashtags(postId, caption);
+    } catch (tagErr) {
+      console.log("syncPostHashtags error (updatePost):", tagErr);
+    }
+
     res.json({ ok: true });
   } catch (err) {
     console.error("updatePost error:", err);

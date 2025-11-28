@@ -204,6 +204,8 @@ function GameRankingPage() {
 
     if (key === "main") {
       navigate("/");
+    } else if (key === "explore") {
+      navigate("/explore");
     } else if (key === "ranking") {
       // 현재 페이지
     } else if (key === "chat") {
@@ -396,6 +398,27 @@ function GameRankingPage() {
                     {rank}
                   </Box>
 
+                  {/* 🔥 게임 썸네일 */}
+                  <Box
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 2,
+                      overflow: "hidden",
+                      bgcolor: "#ddd",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {g.thumbnailUrl && (
+                      <Box
+                        component="img"
+                        src={g.thumbnailUrl}
+                        alt={g.name}
+                        sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    )}
+                  </Box>
+
                   {/* 게임 정보 */}
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
@@ -432,7 +455,7 @@ function GameRankingPage() {
                   <Button
                     variant="outlined"
                     size="small"
-                    onClick={() => handleGoGameFeed(g.id)}
+                    onClick={() => handleGoGameFeed(g.id ?? g.gameId)}
                   >
                     이 게임 피드 보기
                   </Button>

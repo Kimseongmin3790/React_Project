@@ -61,8 +61,9 @@ import {
 } from "../api/userApi";
 import PostDetailDialog from "../components/post/postDetail";
 import CreatePostDialog from "../components/post/CreatePostDialog";
-import MainHeader from "../components/layout/MainHeader"; // 🔥 공통 헤더
+import MainHeader from "../components/layout/MainHeader";
 import SideNav from "../components/layout/SideNav";
+import MyStatsPanel from "../components/user/MyStatsPanel";
 
 const API_ORIGIN = "http://localhost:3020";
 
@@ -106,6 +107,7 @@ function MyPage() {
 
   // 왼쪽 메뉴 선택
   const [selectedMenu, setSelectedMenu] = useState("profile");
+  const [statsRefreshKey, setStatsRefreshKey] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -138,7 +140,7 @@ function MyPage() {
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [notifications, setNotifications] = useState([]);
 
-  // 검색창 (지금은 사용 X, UI만)
+  // 검색창
   const [searchText, setSearchText] = useState("");
 
   const [postMenuAnchor, setPostMenuAnchor] = useState(null);
@@ -163,7 +165,7 @@ function MyPage() {
       setMyPosts(posts || []);
       setLikedPosts(likes || []);
       setBookmarkedPosts(bookmarks || []);
-      setFollowStats(follow);
+      setFollowStats(follow);      
     } catch (err) {
       console.error("/me 데이터 로딩 실패:", err);
       setError("내 피드를 불러오는 중 오류가 발생했습니다.");
@@ -237,6 +239,8 @@ function MyPage() {
 
     if (key === "main") {
       navigate("/");
+    } else if (key === "explore") {
+      navigate("/explore");
     } else if (key === "write") {
       setCreateOpen(true);
     } else if (key === "profile") {
@@ -421,6 +425,10 @@ function MyPage() {
 
   const handlePostCreated = () => {
     setReloadKey((k) => k + 1);
+
+    setStatsRefreshKey((k) => k + 1);
+
+    setCreateOpen(false);
   };
 
   const handleOpenPostMenu = (event, postId) => {
@@ -506,6 +514,9 @@ function MyPage() {
             gap: 3,
           }}
         >
+          {/* 레벨 / 업적 패널 */}
+          <MyStatsPanel refreshKey={statsRefreshKey} />
+
           {/* 내 프로필 헤더 */}
           <Card sx={{ p: 3 }}>
             <Box

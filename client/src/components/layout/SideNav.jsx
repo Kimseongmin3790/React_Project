@@ -19,6 +19,7 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import LogoutIcon from "@mui/icons-material/Logout";
 import SettingsIcon from "@mui/icons-material/Settings";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
+import TravelExploreIcon from "@mui/icons-material/TravelExplore";
 
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -105,6 +106,17 @@ function SideNav({ selectedMenu, onMenuClick }) {
             <HomeIcon />
           </ListItemIcon>
           <ListItemText primary="메인" sx={{ display: { xs: "none", md: "block" } }} />
+        </ListItemButton>
+
+        <ListItemButton
+          selected={selectedMenu === "explore"}
+          onClick={() => handleClickItem("explore")}
+          sx={{ color: "inherit" }}
+        >
+          <ListItemIcon sx={{ color: "inherit" }}>
+            <TravelExploreIcon />
+          </ListItemIcon>
+          <ListItemText primary="탐색" sx={{ display: { xs: "none", md: "block" } }} />
         </ListItemButton>
 
         <ListItemButton

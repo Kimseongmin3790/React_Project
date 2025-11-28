@@ -448,4 +448,6 @@ router.delete("/:targetUserId/block", authMiddleware, userController.unblockUser
 
 router.post("/reports", authMiddleware, userController.createReport);
 
+router.get("/me/stats", authMiddleware, userController.getMyStats);
+
 module.exports = router;

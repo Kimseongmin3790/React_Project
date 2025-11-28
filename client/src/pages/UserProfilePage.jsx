@@ -21,6 +21,7 @@ import {
   fetchFollowerList,
   fetchFollowingList,
 } from "../api/followApi";
+import { markAllNotificationsRead } from "../api/notificationApi";
 import PostDetailDialog from "../components/post/postDetail";
 import CreatePostDialog from "../components/post/CreatePostDialog";
 
@@ -28,6 +29,17 @@ function UserProfilePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { userId } = useParams();
+
+  const [unreadTotal, setUnreadTotal] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+
+  const [reloadKey, setReloadKey] = useState(0);
+  const [sort, setSort] = useState("latest");
+  const [period, setPeriod] = useState("all")
+  const [gameFilter, setGameFilter] = useState("");
+  const [gameSearch, setGameSearch] = useState("");
+
+  const [searchText, setSearchText] = useState("");
 
   const [selectedMenu, setSelectedMenu] = useState("profile");
   const [createOpen, setCreateOpen] = useState(false); // 🔹 글쓰기 모달
@@ -57,12 +69,11 @@ function UserProfilePage() {
   const handleMenuClick = (key) => {
     setSelectedMenu(key);
     if (key === "main") navigate("/");
+    else if (key === "explore") navigate("/explore");
     else if (key === "ranking") navigate("/ranking");
     else if (key === "chat") navigate("/chat");
-    else if (key === "write") {
-      // ✅ 글쓰기 → 모달
-      setCreateOpen(true);
-    } else if (key === "profile") navigate("/me");
+    else if (key === "write") setCreateOpen(true);
+    else if (key === "profile") navigate("/me");
     else if (key === "logout") {
       logout();
       window.location.href = "/login";
@@ -176,6 +187,32 @@ function UserProfilePage() {
     );
   };
 
+  // 🔔 헤더에서 알림 메뉴 열릴 때 → 모두 읽음 처리
+    const handleNotificationsOpened = async () => {
+      if (unreadTotal > 0) {
+        try {
+          await markAllNotificationsRead();
+          setUnreadTotal(0);
+        } catch (err) {
+          console.error("알림 읽음 처리 실패:", err);
+        }
+      }
+    };
+  
+    // 🔔 개별 알림 클릭 시
+    const handleNotificationClick = (n) => {
+      if (n.type === "CHAT_MESSAGE") {
+        navigate("/chat");
+      } else if (
+        n.type === "FOLLOWED_USER_POST" ||
+        n.type === "FOLLOWED_POST"
+      ) {
+        navigate("/");
+      } else {
+        console.log("unknown notification type:", n);
+      }
+    };
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#fafafa" }}>
       {/* 왼쪽 인스타 스타일 사이드바 */}
@@ -185,13 +222,28 @@ function UserProfilePage() {
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
         <MainHeader
           user={user}
-          unreadTotal={0}
-          notifications={[]}
-          onNotificationClick={() => {}}
-          onNotificationsOpened={() => {}}
-          onClickLogo={() => navigate("/")}
+          unreadTotal={unreadTotal}
+          notifications={notifications}
+          onNotificationClick={handleNotificationClick}
+          onNotificationsOpened={handleNotificationsOpened}
+          onClickLogo={() => {
+            setGameFilter("")
+            setGameSearch("")
+            setSort("latest")
+            setPeriod("all")
+            setReloadKey((k) => k + 1)
+            navigate("/")
+            }
+          }
           onClickProfile={() => navigate("/me")}
           showSearch={true}
+          searchPlaceholder="검색창"
+          searchValue={searchText}
+          onChangeSearch={(e) => setSearchText(e.target.value)}
+          onSearchSubmit={(value) => {
+            const q = (value || "").trim();
+            if (q) navigate(`/search?query=${encodeURIComponent(q)}`);
+          }}
         />
 
         <Container maxWidth="md" sx={{ py: 3 }}>

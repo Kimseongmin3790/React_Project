@@ -11,6 +11,8 @@ import MyPage from "./pages/MyPage";
 import GameRankingPage from "./pages/GameRankingPage";
 import SearchResultsPage from "./pages/SearchResultsPage";
 import UserProfilePage from "./pages/UserProfilePage";
+import TagFeedPage from "./pages/TagFeedPage";
+import ExplorePage from "./pages/ExplorePage";
 import { AuthProvider, RequireAuth } from "./context/AuthContext";
 
 function App() {
@@ -79,6 +81,20 @@ function App() {
           <Route path="/users/:userId" element={
             <RequireAuth>
               <UserProfilePage />
+            </RequireAuth>
+          }
+          />
+
+          <Route path="/tags/:tagName" element={
+            <RequireAuth>
+              <TagFeedPage />
+            </RequireAuth>
+          }
+          />
+
+          <Route path="/explore" element={
+            <RequireAuth>
+              <ExplorePage />
             </RequireAuth>
           }
           />

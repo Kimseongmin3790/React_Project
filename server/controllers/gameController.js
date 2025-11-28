@@ -29,6 +29,7 @@ exports.getGameRanking = async (req, res) => {
       id: row.id,
       name: row.name,
       slug: row.slug,
+      thumbnailUrl: row.thumbnailUrl,
       postCount: row.postCount,
       totalLikes: row.totalLikes,
       totalComments: row.totalComments,

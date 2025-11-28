@@ -96,3 +96,9 @@ export async function reportPost(postId, reason) {
   const res = await api.post("/users/reports", { targetPostId: postId, reason });
   return res.data;
 }
+
+// 내 레벨/업적 조회
+export async function fetchMyStats() {
+  const res = await api.get("/users/me/stats");
+  return res.data; // { stats: {...}, achievements: [...] }
+}

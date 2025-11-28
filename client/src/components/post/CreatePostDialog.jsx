@@ -16,6 +16,7 @@ import {
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import CloseIcon from "@mui/icons-material/Close";
+import Autocomplete from "@mui/material/Autocomplete";
 
 import { createPost, fetchGameList } from "../../api/postApi";
 
@@ -23,6 +24,7 @@ function CreatePostDialog({ open, onClose, onCreated }) {
   const [gameList, setGameList] = useState([]);
   const [selectedGameId, setSelectedGameId] = useState("");
   const [caption, setCaption] = useState("");
+  const [gameSearch, setGameSearch] = useState("");
 
   const [imageFiles, setImageFiles] = useState([]);
   const [videoFiles, setVideoFiles] = useState([]);
@@ -134,20 +136,37 @@ function CreatePostDialog({ open, onClose, onCreated }) {
         <Box component="form" onSubmit={handleSubmit}>
           <Stack spacing={2}>
             {/* 게임 선택 */}
-            <TextField
-              select
-              label="게임"
-              value={selectedGameId}
-              onChange={(e) => setSelectedGameId(e.target.value)}
-              required
-              fullWidth
-            >
-              {gameList.map((g) => (
-                <MenuItem key={g.id} value={g.id}>
-                  {g.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Autocomplete
+              size="small"
+              options={gameList}
+              getOptionLabel={(option) => option.name || ""}
+              noOptionsText="게임이 없습니다"
+              value={
+                gameList.find((g) => String(g.id) === String(selectedGameId)) || null
+              }
+              onChange={(e, newValue) => {
+                if (newValue) {
+                  setSelectedGameId(String(newValue.id));
+                  setGameSearch(newValue.name || "");
+                } else {
+                  setSelectedGameId("");
+                  setGameSearch("");
+                }
+              }}
+              inputValue={gameSearch}
+              onInputChange={(e, value) => {
+                setGameSearch(value);
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="게임"
+                  required
+                  fullWidth
+                  placeholder="게임 이름을 입력하세요"
+                />
+              )}
+            />
 
             {/* 설명 */}
             <TextField

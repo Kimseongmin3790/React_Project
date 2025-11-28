@@ -1,19 +1,4 @@
-const pool = require('../db');
-
-// 새 게시글 생성
-async function createPost({ userId, gameId, caption }) {
-  const sql = `
-    INSERT INTO posts (user_id, gameId, caption)
-    VALUES (?, ?, ?)
-  `;
-  const [result] = await pool.execute(sql, [
-    userId,
-    gameId,
-    caption
-  ]);
-
-  return result.insertId;
-}
+const db = require('../db');
 
 // 피드 조회
 async function getFeed({ page = 1, limit = 10, gameId = null, currentUserId = null }) {
@@ -60,7 +45,7 @@ async function getFeed({ page = 1, limit = 10, gameId = null, currentUserId = nu
     LIMIT ${offset}, ${limitNum}
   `;
 
-  const [rows] = await pool.query(sql, params);
+  const [rows] = await db.query(sql, params);
   return rows;
 }
 
@@ -94,7 +79,7 @@ async function getPostById({ postId, currentUserId = null }) {
     LIMIT 1
   `;
 
-  const [postRows] = await pool.query(sqlPost, [
+  const [postRows] = await db.query(sqlPost, [
     userIdParam,
     userIdParam,
     postId,
@@ -104,7 +89,7 @@ async function getPostById({ postId, currentUserId = null }) {
   const post = postRows[0];
 
   // 이미지/영상 전체 목록
-  const [mediaRows] = await pool.execute(
+  const [mediaRows] = await db.execute(
     `
     SELECT
       id,
@@ -160,7 +145,7 @@ async function getMyPosts({ userId, page = 1, limit = 10 }) {
     LIMIT ${offset}, ${limitNum}
   `;
 
-  const [rows] = await pool.query(sql, params);
+  const [rows] = await db.query(sql, params);
   return rows;
 }
 
@@ -202,7 +187,7 @@ async function getMyBookmarkedPosts({ userId, page = 1, limit = 10 }) {
     LIMIT ${offset}, ${limitNum}
   `;
 
-  const [rows] = await pool.query(sql, params);
+  const [rows] = await db.query(sql, params);
   return rows;
 }
 
@@ -249,13 +234,13 @@ async function listUserPosts({ authorUserId, page = 1, limit = 12, currentUserId
     LIMIT ${offset}, ${limitNum}
   `;
 
-  const [rows] = await pool.query(sql, params);
+  const [rows] = await db.query(sql, params);
   return rows;
 }
 
 // 글 내용/게임만 수정 (이미지 수정은 나중에 별도)
 async function updatePost(postId, userId, { caption, gameId }) {
-  const [result] = await pool.query(
+  const [result] = await db.query(
     `
     UPDATE posts
     SET caption = ?, game_id = ?
@@ -268,7 +253,7 @@ async function updatePost(postId, userId, { caption, gameId }) {
 }
 
 async function deletePost(postId, userId) {
-  const conn = await pool.getConnection();
+  const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 
@@ -290,8 +275,37 @@ async function deletePost(postId, userId) {
   }
 }
 
+async function findRandomPosts({ limit = 20 }) {
+  const [rows] = await db.query(
+    `
+      SELECT
+        p.id,
+        p.caption,
+        p.created_at AS createdAt,
+        u.id AS userId,
+        u.username,
+        u.nickname,
+        u.avatar_url AS avatarUrl,
+        g.id AS gameId,
+        g.name AS gameName,
+        pm.url AS thumbUrl,
+        pm.media_type AS thumbType
+      FROM posts p
+      JOIN users u ON u.id = p.user_id
+      LEFT JOIN games g ON g.id = p.game_id
+      LEFT JOIN post_media pm
+        ON pm.post_id = p.id
+       AND pm.sort_order = 0      
+      ORDER BY RAND()
+      LIMIT ?
+    `,
+    [limit]
+  );
+
+  return rows;
+}
+
 module.exports = {
-  createPost,
   getFeed,
   getPostById,
   getMyPosts,
@@ -300,4 +314,5 @@ module.exports = {
   listUserPosts,
   updatePost,
   deletePost,
+  findRandomPosts
 };

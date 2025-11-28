@@ -6,8 +6,8 @@ const tagController = require("../controllers/tagController");
 // GET /api/tags/:tagName/posts
 router.get("/:tagName/posts", tagController.getPostsByTag);
 
-// 트렌딩 태그
-// GET /api/tags/trending
-router.get("/trending/list", tagController.getTrendingTags);
+// 인기 태그 목록
+// GET /api/tags/popular?limit=20&days=7
+router.get("/popular", tagController.getPopularTags);
 
 module.exports = router;

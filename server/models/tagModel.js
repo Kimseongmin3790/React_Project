@@ -1,28 +1,33 @@
+// models/tagModel.js
 const db = require("../db");
 
-exports.findPostsByTagName = async (tagName) => {
-  const [rows] = await db.query(
-    `SELECT p.*
-     FROM post_tags pt
-     JOIN tags t ON pt.tag_id = t.id
-     JOIN posts p ON pt.post_id = p.id
-     WHERE t.name = ?
-     ORDER BY p.created_at DESC
-     LIMIT 50`,
-    [tagName]
-  );
-  return rows;
-};
+// ... 기존 findByName, findOrCreateTags 등 아래쪽에 추가
+exports.findPopularTags = async ({ limit = 20, days = null }) => {
+  const params = [];
+  let where = "";
 
-exports.findTrendingTags = async () => {
+  // 기간 필터: 최근 N일 동안 사용된 태그만
+  if (days && Number.isFinite(days)) {
+    where = "WHERE p.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+    params.push(days);
+  }
+
   const [rows] = await db.query(
-    `SELECT t.id, t.name, COUNT(*) AS usage_count
-     FROM post_tags pt
-     JOIN tags t ON pt.tag_id = t.id
-     WHERE pt.created_at >= NOW() - INTERVAL 1 DAY
-     GROUP BY t.id, t.name
-     ORDER BY usage_count DESC
-     LIMIT 10`
+    `
+      SELECT
+        t.id,
+        t.name,
+        COUNT(DISTINCT pt.post_id) AS postCount
+      FROM tags t
+      JOIN post_tags pt ON pt.tag_id = t.id
+      JOIN posts p ON p.id = pt.post_id
+      ${where}
+      GROUP BY t.id, t.name
+      ORDER BY postCount DESC, t.id ASC
+      LIMIT ?
+    `,
+    [...params, limit]
   );
+
   return rows;
 };

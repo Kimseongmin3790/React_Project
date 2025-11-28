@@ -17,6 +17,8 @@ import {
   ListItemText,
   Typography,
 } from "@mui/material";
+import Autocomplete from "@mui/material/Autocomplete";
+
 import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -42,11 +44,11 @@ function ChatPage() {
 
   const [selectedMenu, setSelectedMenu] = useState("chat");
   const [createOpen, setCreateOpen] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
 
   const [mode, setMode] = useState("GAME"); // GAME | DM
   const [gameList, setGameList] = useState([]);
   const [selectedGameId, setSelectedGameId] = useState("");
+  const [gameSearch, setGameSearch] = useState("");
 
   const [currentRoomId, setCurrentRoomId] = useState(null);
   const [roomInfo, setRoomInfo] = useState(null); // { type, gameId, gameName, otherUserId }
@@ -67,7 +69,9 @@ function ChatPage() {
   // ────────────────────────── 공통 네비게이션 (SideNav) ──────────────────────────
   const handleMenuClick = (key) => {
     setSelectedMenu(key);
+
     if (key === "main") navigate("/");
+    else if (key === "explore") navigate("/explore");
     else if (key === "ranking") navigate("/ranking");
     else if (key === "chat") navigate("/chat");
     else if (key === "write") setCreateOpen(true);
@@ -479,24 +483,48 @@ function ChatPage() {
                 alignItems: "center",
                 gap: 2,
                 mt: 1,
+                flexWrap: "wrap", // 작은 화면에서 줄바꿈 허용
               }}
             >
-              <TextField
-                select
-                size="small"
-                label="게임 선택"
-                value={selectedGameId}
-                onChange={(e) => setSelectedGameId(e.target.value)}
-                sx={{ minWidth: 200 }}
+              <Box sx={{ minWidth: { xs: "100%", sm: 260 }, maxWidth: 360 }}>
+                <Autocomplete
+                  size="small"
+                  options={gameList}
+                  getOptionLabel={(option) => option.name || ""}
+                  noOptionsText="게임이 없습니다"
+                  // 현재 선택된 값
+                  value={
+                    gameList.find((g) => String(g.id) === String(selectedGameId)) ||
+                    null
+                  }
+                  onChange={(e, newValue) => {
+                    if (newValue) {
+                      setSelectedGameId(String(newValue.id));
+                      setGameSearch(newValue.name || "");
+                    } else {
+                      setSelectedGameId("");
+                      setGameSearch("");
+                    }
+                  }}
+                  inputValue={gameSearch}
+                  onInputChange={(e, value) => {
+                    setGameSearch(value);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="게임 선택"
+                      placeholder="게임 이름 검색"
+                    />
+                  )}
+                />
+              </Box>
+
+              <Button
+                variant="contained"
+                onClick={handleJoinGameRoom}
+                sx={{ whiteSpace: "nowrap" }}
               >
-                <MenuItem value="">선택 안 함</MenuItem>
-                {gameList.map((g) => (
-                  <MenuItem key={g.id} value={g.id}>
-                    {g.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <Button variant="contained" onClick={handleJoinGameRoom}>
                 이 게임 채팅방 입장
               </Button>
             </Box>

@@ -37,7 +37,7 @@ exports.searchTags = async (q) => {
 exports.searchGames = async (q) => {
   const like = `%${q}%`;
   const [rows] = await db.query(
-    "SELECT id, name FROM games WHERE name LIKE ? ORDER BY name LIMIT 20",
+    "SELECT id, name, thumbnail_url FROM games WHERE name LIKE ? ORDER BY name LIMIT 20",
     [`%${q}%`]
   );
   return rows;

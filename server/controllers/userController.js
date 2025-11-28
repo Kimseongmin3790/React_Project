@@ -1,11 +1,33 @@
 const userStatsModel = require("../models/userStatsModel");
 const userModel = require("../models/userModel");
+const achievementModel = require("../models/achievementModel");
 
 exports.getMyStats = async (req, res) => {
-  const userId = req.user.id; // auth 미들웨어에서 넣어줬다고 가정
+  const userId = req.user.id;
   try {
     const stats = await userStatsModel.getMyStats(userId);
-    res.json(stats);
+    const achievements = await achievementModel.getUserAchievements(userId);
+
+    const expForNextLevel = stats.level * 100; // 레벨 n -> n+1 기준 exp
+    const expIntoLevel = stats.exp - (stats.level - 1) * 100;
+    const expProgressPercent = Math.max(
+      0,
+      Math.min(100, Math.floor((expIntoLevel / 100) * 100))
+    );
+
+    res.json({
+      stats: {
+        userId: stats.user_id,
+        postCount: stats.post_count,
+        receivedLikes: stats.received_likes,
+        receivedComments: stats.received_comments,
+        exp: stats.exp,
+        level: stats.level,
+        expForNextLevel,
+        expProgressPercent,
+      },
+      achievements,
+    });
   } catch (err) {
     console.error("getMyStats error:", err);
     res.status(500).json({ error: "레벨 정보 조회 중 오류" });

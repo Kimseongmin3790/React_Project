@@ -102,15 +102,12 @@ function SearchResultsPage() {
     setSelectedMenu(key);
 
     if (key === "main") navigate("/");
+    else if (key === "explore") navigate("/explore");
     else if (key === "ranking") navigate("/ranking");
     else if (key === "chat") navigate("/chat");
-    else if (key === "write") {
-      // ✅ 글쓰기 → 모달 오픈
-      setCreateOpen(true);
-    } else if (key === "profile") navigate("/me");
-    else if (key === "more") {
-      // TODO: 더보기(계정 설정, 다크모드 등) 열기
-    } else if (key === "logout") {
+    else if (key === "write") setCreateOpen(true);
+    else if (key === "profile") navigate("/me");
+    else if (key === "logout") {
       logout();
       window.location.href = "/login";
     }
@@ -346,20 +343,45 @@ function SearchResultsPage() {
       return <Typography>검색된 게임이 없습니다.</Typography>;
     }
     return data.games.map((g) => (
-      <Button
+      <Card
         key={g.id}
-        size="small"
-        sx={{
-          textTransform: "none",
-          justifyContent: "flex-start",
-          mb: 0.5,
-        }}
+        sx={{ mb: 1, cursor: "pointer" }}
         onClick={() => {
-          navigate(`/?game=${encodeURIComponent(g.name)}`);
+          navigate("/", { state: { initialGameId: g.id } });
         }}
       >
-        {g.name}
-      </Button>
+        <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: 2,
+              overflow: "hidden",
+              bgcolor: "#ddd",
+              flexShrink: 0,
+            }}
+          >
+            {g.thumbnail_url && (
+              <Box
+                component="img"
+                src={g.thumbnail_url}
+                alt={g.name}
+                sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            )}
+          </Box>
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
+              {g.name}
+            </Typography>
+            {g.slug && (
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {g.slug}
+              </Typography>
+            )}
+          </Box>
+        </CardContent>
+      </Card>
     ));
   };
 

@@ -1,5 +1,5 @@
 // src/components/layout/MainHeader.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -12,6 +12,7 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  LinearProgress,
 } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
@@ -19,6 +20,7 @@ import ArticleIcon from "@mui/icons-material/Article";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import { buildFileUrl } from "../../utils/url";
 import { useTheme } from "@mui/material/styles";
+import { fetchMyStats } from "../../api/userApi"; // ⭐ 내 스탯 조회 API
 
 function MainHeader({
   user,
@@ -37,6 +39,40 @@ function MainHeader({
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const theme = useTheme();
+
+  // 🔥 헤더에서도 유저 레벨/EXP 표시용
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  // 로그인 유저 바뀔 때마다 내 스탯 한 번 조회
+  useEffect(() => {
+    if (!user) {
+      setStats(null);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        setStatsLoading(true);
+        const data = await fetchMyStats(); // GET /users/me/stats 같은 API
+        if (!cancelled) setStats(data.stats);
+      } catch (err) {
+        console.error("MainHeader fetchMyStats error:", err);
+      } finally {
+        if (!cancelled) setStatsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const level = stats?.level ?? 1;
+  const exp = stats?.exp ?? 0;
+  const currentExp = exp % 100;
+  const levelPercent = Math.min(100, (currentExp / 100) * 100);
 
   const handleOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -67,8 +103,8 @@ function MainHeader({
       {/* 상단 바 */}
       <Box
         sx={{
-          bgcolor: theme.palette.background.paper,    // 🔥 헤더 배경
-          color: theme.palette.text.primary,         // 🔥 글자/아이콘 색
+          bgcolor: theme.palette.background.paper,
+          color: theme.palette.text.primary,
           px: 3,
           py: 1.5,
           display: "flex",
@@ -106,7 +142,7 @@ function MainHeader({
                   bgcolor:
                     theme.palette.mode === "light"
                       ? theme.palette.background.default
-                      : theme.palette.grey[900],       // 🔥 다크모드에서 어두운 검색창
+                      : theme.palette.grey[900],
                   borderRadius: 5,
                   "& .MuiOutlinedInput-notchedOutline": {
                     borderColor: "transparent",
@@ -123,6 +159,7 @@ function MainHeader({
           </Box>
         )}
 
+        {/* 오른쪽 아이콘/프로필/레벨 */}
         <Box
           sx={{
             ml: "auto",
@@ -151,6 +188,44 @@ function MainHeader({
               {user?.nickname?.[0] || user?.username?.[0] || "U"}
             </Avatar>
           </IconButton>
+
+          {/* 🔥 프로필 오른쪽에 레벨/EXP 표시 */}
+          {user && stats && (
+            <Box
+              sx={{
+                display: { xs: "none", sm: "flex" },
+                flexDirection: "column",
+                alignItems: "flex-start",
+                minWidth: 120,
+                maxWidth: 180,
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <Typography
+                  variant="caption"
+                  sx={{ fontWeight: "bold", lineHeight: 1.2 }}
+                >
+                  Lv. {level}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{ color: "text.secondary", lineHeight: 1.2 }}
+                >
+                  {exp} EXP
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={levelPercent}
+                sx={{
+                  mt: 0.4,
+                  width: "100%",
+                  height: 4,
+                  borderRadius: 999,
+                }}
+              />
+            </Box>
+          )}
         </Box>
       </Box>
 
@@ -165,7 +240,7 @@ function MainHeader({
           sx: {
             width: 320,
             maxHeight: 400,
-            bgcolor: theme.palette.background.paper,      // 🔥 메뉴도 테마 배경
+            bgcolor: theme.palette.background.paper,
           },
         }}
       >
