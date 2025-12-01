@@ -160,7 +160,7 @@ socket.io 기반 **실시간 채팅 기능**
 
 ---
 
-### 9. 유저 레벨 & 업적 (진행 중)
+### 9. 유저 레벨 & 업적
 
 `user_stats`, `achievements`, `user_achievements` 테이블 기반
 ![page achievements](/images/page-achievements.png)
