@@ -36,6 +36,7 @@
 - **기타**
   - 피드 카드를 클릭하면 **게시글 상세 모달(PostDetailDialog)** 오픈  
   - 해시태그 `#태그` 자동 추출 및 태그 피드와 연동
+  - ![Feed Detail](/images/page-detail.png)
 
 ---
 
