@@ -1,4 +1,4 @@
-<img width="471" height="864" alt="image" src="https://github.com/user-attachments/assets/4a8e30be-eafa-4dfc-8495-6c62781ebeb7" /># 🎮 GClip – 게임 하이라이트 공유 SNS
+# 🎮 GClip – 게임 하이라이트 공유 SNS
 
 ![Main Feed](/images/page-main.png)
 게임 스크린샷·하이라이트 클립을 올리고 공유하는 **게임 특화 SNS 서비스**입니다.  
