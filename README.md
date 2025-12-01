@@ -43,7 +43,7 @@
 ### 2. 게시글 작성 (CreatePostDialog)
 
 사이드바의 **글 쓰기 버튼** 클릭 시 모달로 게시글 작성
-![Feed write](/images/feed-write.png)
+![Feed write](/images/page-write.png)
 - **기능**
   - 게임 선택 (검색 가능한 드롭다운)
   - 캡션 입력 + 해시태그 인식
@@ -114,7 +114,7 @@
 ### 6. 실시간 채팅
 
 socket.io 기반 **실시간 채팅 기능**
-
+![page chat](/images/page-chat.png)
 - **기능**
   - 게임별 채팅방
     - 게임 선택 → 해당 게임 전용 채팅방 입장
@@ -122,6 +122,7 @@ socket.io 기반 **실시간 채팅 기능**
     - 유저 검색 후 DM 방 생성/입장
   - 방별 안읽은 메시지 수 표시
   - 최근 메시지 도착 시 상단 알림 박스로 “이 방으로 이동” 버튼 제공
+![chat UI](/images/page-chatUI.png)
 - **UI**
   - 좌측: 게임 선택 / DM 대상 검색 영역
   - 우측: 채팅 메시지 리스트 + 입력창
@@ -133,7 +134,7 @@ socket.io 기반 **실시간 채팅 기능**
 ### 7. 프로필 / 마이페이지
 
 유저의 활동과 통계를 보여주는 **프로필 페이지**
-
+![my page](/images/page-mypage.png)
 - **기능**
   - 프로필 정보: 아바타, 닉네임, 소개(bio)
   - 팔로우/팔로잉/팔로워 수
@@ -148,7 +149,7 @@ socket.io 기반 **실시간 채팅 기능**
 ### 8. 해시태그 시스템
 
 캡션에서 `#태그` 자동 추출 → 태그 DB와 매핑
-
+![page tag](/images/page-tag.png)
 - **동작 흐름**
   - 글 작성/수정 시 캡션을 파싱해 태그 목록 추출
   - `tags`, `post_tags` 테이블에 Insert/Sync
@@ -174,7 +175,7 @@ socket.io 기반 **실시간 채팅 기능**
 ---
 
 ### 10. 공통 UI & 다크 모드
-
+![page darkmode](/images/page-darkmode.png)
 - **공통 헤더(MainHeader)**
   - 로고, 검색창, 알림 아이콘, 프로필 아바타
   - 알림 드롭다운 메뉴 (새 포스트, 채팅 알림 등)
