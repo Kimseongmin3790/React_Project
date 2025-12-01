@@ -1,4 +1,4 @@
-// src/components/post/CreatePostDialog.jsx
+// src/components/post/EditPostDialog.jsx
 import React, { useEffect, useState } from "react";
 import {
   Dialog,
@@ -10,98 +10,94 @@ import {
   TextField,
   Typography,
   Stack,
-  MenuItem,
   IconButton,
 } from "@mui/material";
-import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
-import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import CloseIcon from "@mui/icons-material/Close";
 import Autocomplete from "@mui/material/Autocomplete";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
+import { updatePost } from "../../api/postApi";
 
-import { createPost, fetchGameList } from "../../api/postApi";
-import AchievementToast from "../achievement/AchievementToast";
-
-function CreatePostDialog({ open, onClose, onCreated }) {
-  const [gameList, setGameList] = useState([]);
+function EditPostDialog({ open, post, gameList = [], onClose, onSaved }) {
   const [selectedGameId, setSelectedGameId] = useState("");
-  const [caption, setCaption] = useState("");
   const [gameSearch, setGameSearch] = useState("");
-
+  const [caption, setCaption] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [imageFiles, setImageFiles] = useState([]);
   const [videoFiles, setVideoFiles] = useState([]);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const hasNewMedia = imageFiles.length > 0 || videoFiles.length > 0;
 
-  const [achToastOpen, setAchToastOpen] = useState(false);
-  const [lastAchievement, setLastAchievement] = useState(null);
-  const [achievementCount, setAchievementCount] = useState(0);
-
-  const hasMedia = imageFiles.length > 0 || videoFiles.length > 0;
-
-  // 게임 목록 로딩
+  // 다이얼로그 열릴 때, 수정할 게시글 정보로 초기화
   useEffect(() => {
-    if (!open) return;
-    async function loadGames() {
-      try {
-        const games = await fetchGameList();
-        setGameList(games);
-      } catch (err) {
-        console.error("게임 목록 불러오기 실패:", err);
-      }
-    }
-    loadGames();
-  }, [open]);
+    if (open && post) {
+      const gameIdStr = String(post.gameId ?? "");
+      setSelectedGameId(gameIdStr);
 
-  // 모달 닫힐 때 폼 초기화
-  useEffect(() => {
-    if (!open) {
-      setSelectedGameId("");
-      setCaption("");
-      setImageFiles([]);
-      setVideoFiles([]);
+      const foundGame =
+        gameList.find((g) => String(g.id) === gameIdStr) || null;
+
+      setGameSearch(foundGame?.name || post.gameName || "");
+      setCaption(post.caption || "");
       setError("");
       setLoading(false);
+
+      setImageFiles([]);
+      setVideoFiles([]);
     }
-  }, [open]);
+    if (!open) {
+      setError("");
+      setLoading(false);
+      setImageFiles([]);
+      setVideoFiles([]);
+    }
+  }, [open, post, gameList]);
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
-    setError("");
+    if (!post) return;
 
     if (!selectedGameId) {
       setError("게임을 선택해주세요.");
       return;
     }
 
-    if (!hasMedia) {
-      setError("이미지나 동영상을 최소 1개 이상 첨부해주세요.");
+    if (!caption.trim()) {
+      setError("설명을 입력해주세요.");
       return;
     }
 
     setLoading(true);
+    setError("");
+
     try {
-      const data = await createPost({
-        gameId: selectedGameId,
+      await updatePost(post.id, {
         caption,
+        gameId: selectedGameId,
         images: imageFiles,
         videos: videoFiles,
+        replaceMedia: hasNewMedia,
       });
 
-      const unlocked = data.unlockedAchievements || [];
-      if (unlocked.length > 0) {
-        setLastAchievement(unlocked[0]);        // 첫 번째 업적 정보
-        setAchievementCount(unlocked.length);   // 몇 개나 열렸는지
-        setAchToastOpen(true);                  // 토스트 열기
-      }
+      // 프론트에서 즉시 반영할 업데이트 데이터 구성
+      const updatedGame =
+        gameList.find((g) => String(g.id) === String(selectedGameId)) || null;
 
-      if (onCreated) onCreated(); // 피드 새로고침 등
-      onClose();
+      const updatedPost = {
+        id: post.id,
+        caption,
+        gameId: Number(selectedGameId),
+        gameName: updatedGame?.name || post.gameName,
+        gameSlug: updatedGame?.slug || post.gameSlug,
+      };
+
+      if (onSaved) onSaved(updatedPost);
     } catch (err) {
-      console.error("createPost error:", err);
+      console.error("updatePost error (EditPostDialog):", err);
       const msg =
         err?.response?.data?.message ||
-        "게시글 작성 중 오류가 발생했습니다.";
+        "게시글 수정 중 오류가 발생했습니다.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -119,33 +115,33 @@ function CreatePostDialog({ open, onClose, onCreated }) {
   };
 
   return (
-    <>
-      <Dialog
-        open={open}
-        onClose={loading ? undefined : onClose}
-        maxWidth="sm"
-        fullWidth
+    <Dialog
+      open={open}
+      onClose={loading ? undefined : onClose}
+      maxWidth="sm"
+      fullWidth
+    >
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          pr: 2,
+        }}
       >
-        <DialogTitle
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            pr: 2,
-          }}
+        게시글 수정
+        <IconButton
+          size="small"
+          onClick={onClose}
+          disabled={loading}
+          sx={{ ml: 1 }}
         >
-          새 게시글
-          <IconButton
-            size="small"
-            onClick={onClose}
-            disabled={loading}
-            sx={{ ml: 1 }}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </DialogTitle>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
 
-        <DialogContent dividers>
+      <DialogContent dividers>
+        {post ? (
           <Box component="form" onSubmit={handleSubmit}>
             <Stack spacing={2}>
               {/* 게임 선택 */}
@@ -155,7 +151,9 @@ function CreatePostDialog({ open, onClose, onCreated }) {
                 getOptionLabel={(option) => option.name || ""}
                 noOptionsText="게임이 없습니다"
                 value={
-                  gameList.find((g) => String(g.id) === String(selectedGameId)) || null
+                  gameList.find(
+                    (g) => String(g.id) === String(selectedGameId)
+                  ) || null
                 }
                 onChange={(e, newValue) => {
                   if (newValue) {
@@ -191,12 +189,20 @@ function CreatePostDialog({ open, onClose, onCreated }) {
                 fullWidth
               />
 
-              {/* 이미지 업로드 박스 */}
+              {/* 🔥 미디어 교체 영역 */}
               <Box>
                 <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  이미지 (여러 장 선택 가능)
+                  이미지 / 영상 교체 (선택)
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{ color: "text.secondary", display: "block", mb: 1 }}
+                >
+                  미디어를 선택하지 않으면 기존 이미지/영상이 유지됩니다.
+                  새 이미지/영상을 선택하면 기존 미디어는 모두 교체됩니다.
                 </Typography>
 
+                {/* 이미지 업로드 */}
                 <Box
                   sx={{
                     border: "1px dashed #bdbdbd",
@@ -207,17 +213,18 @@ function CreatePostDialog({ open, onClose, onCreated }) {
                     gap: 2,
                     flexWrap: "wrap",
                     bgcolor: "#fafafa",
+                    mb: 1.5,
                   }}
                 >
                   <input
-                    id="create-post-images"
+                    id="edit-post-images"
                     type="file"
                     accept="image/*"
                     multiple
                     style={{ display: "none" }}
                     onChange={handleImageChange}
                   />
-                  <label htmlFor="create-post-images">
+                  <label htmlFor="edit-post-images">
                     <Button
                       variant="outlined"
                       component="span"
@@ -272,14 +279,8 @@ function CreatePostDialog({ open, onClose, onCreated }) {
                     </Box>
                   )}
                 </Box>
-              </Box>
 
-              {/* 영상 업로드 박스 */}
-              <Box>
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  영상 (최대 1개)
-                </Typography>
-
+                {/* 영상 업로드 */}
                 <Box
                   sx={{
                     border: "1px dashed #bdbdbd",
@@ -293,13 +294,13 @@ function CreatePostDialog({ open, onClose, onCreated }) {
                   }}
                 >
                   <input
-                    id="create-post-video"
+                    id="edit-post-video"
                     type="file"
                     accept="video/*"
                     style={{ display: "none" }}
                     onChange={handleVideoChange}
                   />
-                  <label htmlFor="create-post-video">
+                  <label htmlFor="edit-post-video">
                     <Button
                       variant="outlined"
                       component="span"
@@ -334,31 +335,29 @@ function CreatePostDialog({ open, onClose, onCreated }) {
               )}
             </Stack>
           </Box>
-        </DialogContent>
+        ) : (
+          <Typography variant="body2">
+            수정할 게시글 정보를 불러오는 중입니다.
+          </Typography>
+        )}
+      </DialogContent>
 
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={onClose} disabled={loading}>
-            취소
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={
-              loading || !selectedGameId || !hasMedia || !caption.trim()
-            }
-          >
-            {loading ? "작성 중..." : "게시하기"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <AchievementToast
-        open={achToastOpen}
-        onClose={() => setAchToastOpen(false)}
-        achievement={lastAchievement}
-        count={achievementCount}
-      />
-    </>
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} disabled={loading}>
+          취소
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={
+            loading || !selectedGameId || !caption.trim() || !post
+          }
+        >
+          {loading ? "수정 중..." : "수정하기"}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
-export default CreatePostDialog;
+export default EditPostDialog;

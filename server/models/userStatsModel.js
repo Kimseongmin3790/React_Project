@@ -51,3 +51,14 @@ exports.getMyStats = async (userId) => {
     level: 1,
   };
 };
+
+exports.addExpFromAchievement = async (userId, exp) => {
+  if (!exp || exp === 0) {
+    return exports.getMyStats(userId);
+  }
+
+  await updateUserStats(userId, { exp });
+
+  // 업데이트된 값 다시 조회해서 리턴
+  return exports.getMyStats(userId);
+};

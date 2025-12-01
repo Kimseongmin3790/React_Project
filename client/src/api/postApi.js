@@ -33,7 +33,7 @@ export async function createPost({ gameId, caption, images = [], videos = [] }) 
       "Content-Type": "multipart/form-data",
     },
   });
-  // { message, post }
+  // { message, post, userStats?, unlockedAchievements? ... }
   return res.data;
 }
 
@@ -104,9 +104,38 @@ export async function fetchMyBookmarkedPosts({ page = 1, limit = 10 } = {}) {
   return res.data; // { page, limit, posts }
 }
 
-export async function updatePost(postId, { caption, gameId }) {
-  const res = await api.put(`/posts/${postId}`, { caption, gameId });
-  return res.data;
+export async function updatePost(postId, { caption, gameId, images = [], videos = [], replaceMedia = false }) {
+  const hasMedia =
+    (images && images.length > 0) ||
+    (videos && videos.length > 0);
+  
+  if (hasMedia) {
+    const formData = new FormData();
+    formData.append("caption", caption);
+    formData.append("gameId", gameId);
+    formData.append("replaceMedia", replaceMedia ? "true" : "false");
+
+    images.forEach((file) => {
+      formData.append("images", file);
+    });
+
+    videos.forEach((file) => {
+      formData.append("videos", file);
+    });
+
+    const res = await api.put(`/posts/${postId}`, formData, { 
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return res.data;
+  } else {
+    const res = await api.put(`/posts/${postId}`, {
+      caption,
+      gameId,
+    });
+    return res.data;
+  }
 }
 
 export async function deletePost(postId) {

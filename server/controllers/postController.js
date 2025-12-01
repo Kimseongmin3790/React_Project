@@ -101,42 +101,63 @@ exports.createPost = async (req, res) => {
   }
 
   // 유저 통계 업데이트
+  let userStats = null;
   try {
     await userStatsModel.updateOnNewPost(user.id);
+    
+    const { newlyUnlocked, bonusExp, updatedStats } = 
+      await achievementService.checkAndUnlockAll(user.id);
+
+    userStats = updatedStats;
+
+    conn.release();
+
+    return res.status(201).json({
+      message: "게시글이 등록되었습니다.",
+      post: {
+        id: postId,
+        userId: user.id,
+        username: user.username,
+        nickname: user.nickname,
+        avatarUrl: user.avatarUrl,
+        gameId: game.id,
+        gameName: game.name,
+        gameSlug: game.slug,
+        caption,
+        likeCount: 0,
+        commentCount: 0,
+        createdAt: new Date().toISOString(),
+      },
+      userStats,                // 프론트에서 헤더/마이페이지 갱신용
+      unlockedAchievements: newlyUnlocked, // 토스트용
+      bonusExp,                // "EXP +XX" 보여줄 때 사용
+    });
   } catch (statsErr) {
-    console.error("updateOnNewPost error:", statsErr);
+    console.error("stats/achievement error (createPost):", statsErr);
+    conn.release();
+    // stats 부분에서 에러 나도, 게시글은 이미 올라갔으니 최소한 post는 반환
+    return res.status(201).json({
+      message: "게시글이 등록되었습니다. (통계/업적 반영 중 일부 오류)",
+      post: {
+        id: postId,
+        userId: user.id,
+        username: user.username,
+        nickname: user.nickname,
+        avatarUrl: user.avatarUrl,
+        gameId: game.id,
+        gameName: game.name,
+        gameSlug: game.slug,
+        caption,
+        likeCount: 0,
+        commentCount: 0,
+        createdAt: new Date().toISOString(),
+      },
+      userStats: null,
+      unlockedAchievements: [],
+      bonusExp: 0,
+    });
   }
 
-  // 업적 체크 (새로 열린 업적이 있으면 반환됨)
-  let unlockedAchievements = [];
-  try {
-    unlockedAchievements = await achievementService.checkAndUnlockAll(
-      user.id
-    );
-  } catch (achErr) {
-    console.error("achievement check error (createPost):", achErr);
-  }
-
-  conn.release();
-
-  return res.status(201).json({
-    message: "게시글이 등록되었습니다.",
-    post: {
-      id: postId,
-      userId: user.id,
-      username: user.username,
-      nickname: user.nickname,
-      avatarUrl: user.avatarUrl,
-      gameId: game.id,
-      gameName: game.name,
-      gameSlug: game.slug,
-      caption,
-      likeCount: 0,
-      commentCount: 0,
-      createdAt: new Date().toISOString(),
-    },
-    unlockedAchievements,
-  });
 };
 
 // GET /api/posts  (피드 조회: 로그인 여부와 상관 없이 전체 피드)
@@ -218,23 +239,28 @@ exports.likePost = async (req, res) => {
 
     await conn.commit();
 
-    let unlockedAchievements = [];
+    let achievementResult = {
+      newlyUnlocked: [],
+      bonusExp: 0,
+      updatedStats: null,
+    };
 
     if (inserted && postAuthorId && postAuthorId !== user.id) {
       try {
         await userStatsModel.updateOnReceivedLike(postAuthorId);
 
-        unlockedAchievements = await achievementService.checkAndUnlockAll(postAuthorId);
+        achievementResult = await achievementService.checkAndUnlockAll(postAuthorId);
 
-        if (unlockedAchievements.length > 0) {
-          console.log("like로 언락된 업적:", unlockedAchievements.map((a) => a.code));
-        };
+        if (achievementResult.newlyUnlocked.length > 0) {
+          console.log("like로 언락된 업적:", achievementResult.newlyUnlocked.map((a) => a.code));
+        }
       } catch (achErr) {
         console.error("achievement check error (likePost):", achErr);
       }
     }
+    conn.release();
 
-    res.json({ liked: true, likeCount, unlockedAchievements });
+    res.json({ liked: true, likeCount, achievementResult });
   } catch (err) {
     console.error("likePost error:", err);
     await conn.rollback();
@@ -408,6 +434,7 @@ exports.createComment = async (req, res) => {
     );
     if (postRows.length === 0) {
       await conn.rollback();
+      conn.release();
       return res.status(404).json({ message: "게시글을 찾을 수 없습니다." });
     }
     postAuthorId = postRows[0].user_id;
@@ -433,30 +460,35 @@ exports.createComment = async (req, res) => {
     );
 
     const [cRows] = await conn.execute(
-      `SELECT created_at FROM comments WHERE id = ?`,
+      `SELECT created_at FROM post_comments WHERE id = ?`,
       [commentId]
     );
     createdAt = cRows[0]?.created_at || new Date();
 
     await conn.commit();
 
-    let unlockedAchievements = [];
+    let achievementResult = {
+      newlyUnlocked: [],
+      bonusExp: 0,
+      updatedStats: null,
+    };
+
     if (postAuthorId && postAuthorId !== user.id) {
       try {
         await userStatsModel.updateOnReceivedComment(postAuthorId);
-        unlockedAchievements =
+        achievementResult =
           await achievementService.checkAndUnlockAll(postAuthorId);
-        if (unlockedAchievements.length > 0) {
+        if (achievementResult.newlyUnlocked.length > 0) {
           console.log(
             "comment로 언락된 업적:",
-            unlockedAchievements.map((a) => a.code)
+            achievementResult.newlyUnlocked.map((a) => a.code)
           );
         }
       } catch (achErr) {
         console.error("achievement check error (createComment):", achErr);
       }
     }
-
+    conn.release();
 
     // 프론트에서 바로 쓸 수 있게 작성자 정보 포함해서 리턴
     res.status(201).json({
@@ -467,7 +499,7 @@ exports.createComment = async (req, res) => {
         content,
         createdAt,
       },
-      unlockedAchievements,
+      achievementResult,
     });
   } catch (err) {
     console.error("createComment error:", err);
@@ -597,40 +629,128 @@ exports.listUserPosts = async (req, res) => {
 };
 
 // PUT /api/posts/:postId
+// PUT /api/posts/:postId
 exports.updatePost = async (req, res) => {
+  const postId = Number(req.params.postId);
+  const userId = req.user.id;
+
+  const { caption, gameId, replaceMedia } = req.body;
+
+  if (!postId) {
+    return res
+      .status(400)
+      .json({ message: "잘못된 게시글입니다." });
+  }
+
+  if (!caption || !gameId) {
+    return res
+      .status(400)
+      .json({ message: "caption과 gameId는 필수입니다." });
+  }
+
+  const gameIdNum = Number.parseInt(gameId, 10);
+  if (!gameIdNum) {
+    return res
+      .status(400)
+      .json({ message: "유효한 게임을 선택해주세요." });
+  }
+
+  const conn = await db.getConnection();
+
   try {
-    const postId = Number(req.params.postId);    
-    const userId = req.user.id; // authMiddleware에서 넣어준 값이라고 가정
-    const { caption, gameId } = req.body;
+    await conn.beginTransaction();
 
-    if (!caption || !gameId) {
+    // 1) 작성자 확인
+    const [rows] = await conn.execute(
+      `SELECT user_id FROM posts WHERE id = ?`,
+      [postId]
+    );
+    if (rows.length === 0) {
+      await conn.rollback();
+      conn.release();
       return res
-        .status(400)
-        .json({ message: "caption과 gameId는 필수입니다." });
+        .status(404)
+        .json({ message: "게시글을 찾을 수 없습니다." });
     }
-
-    const affected = await postModel.updatePost(postId, userId, {
-      caption,
-      gameId,
-    });
-
-    if (affected === 0) {
+    const postAuthorId = rows[0].user_id;
+    if (postAuthorId !== userId) {
+      await conn.rollback();
+      conn.release();
       return res
         .status(403)
-        .json({ message: "수정 권한이 없거나 존재하지 않는 게시글입니다." });
+        .json({ message: "수정 권한이 없습니다." });
     }
 
-    try {
-      await syncPostHashtags(postId, caption);
-    } catch (tagErr) {
-      console.log("syncPostHashtags error (updatePost):", tagErr);
+    // 2) 기본 정보 업데이트 (캡션 / 게임)
+    await conn.execute(
+      `
+      UPDATE posts
+      SET caption = ?, game_id = ?
+      WHERE id = ?
+      `,
+      [caption, gameIdNum, postId]
+    );
+
+    // 3) 미디어 교체 여부 확인
+    const files = req.files || {};
+    const imageFiles = files.images || [];
+    const videoFiles = files.videos || [];
+
+    const hasNewMedia =
+      imageFiles.length > 0 || videoFiles.length > 0;
+    const shouldReplace =
+      hasNewMedia &&
+      (replaceMedia === "true" || replaceMedia === true);
+
+    if (shouldReplace) {
+      // 3-1) 기존 미디어 삭제
+      await conn.execute(
+        `DELETE FROM post_media WHERE post_id = ?`,
+        [postId]
+      );
+
+      // 3-2) 새 미디어 저장 (createPost 로직과 동일)
+      let sortOrder = 0;
+
+      for (const file of imageFiles) {
+        const url = `/uploads/${file.filename}`;
+        await conn.execute(
+          `INSERT INTO post_media (post_id, media_type, url, sort_order)
+           VALUES (?, 'IMAGE', ?, ?)`,
+          [postId, url, sortOrder++]
+        );
+      }
+
+      for (const file of videoFiles) {
+        const url = `/uploads/${file.filename}`;
+        await conn.execute(
+          `INSERT INTO post_media (post_id, media_type, url, sort_order)
+           VALUES (?, 'VIDEO', ?, ?)`,
+          [postId, url, sortOrder++]
+        );
+      }
     }
 
-    res.json({ ok: true });
+    await conn.commit();
   } catch (err) {
     console.error("updatePost error:", err);
-    res.status(500).json({ message: "게시글 수정 중 오류가 발생했습니다." });
+    await conn.rollback();
+    conn.release();
+    return res
+      .status(500)
+      .json({ message: "게시글 수정 중 오류가 발생했습니다." });
+  } finally {
+    conn.release();
   }
+
+  // 해시태그 재동기화
+  try {
+    await syncPostHashtags(postId, caption);
+  } catch (tagErr) {
+    console.log("syncPostHashtags error (updatePost):", tagErr);
+  }
+
+  return res.json({ ok: true });
 };
 
 // DELETE /api/posts/:postId

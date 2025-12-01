@@ -30,6 +30,7 @@ import {
   bookmarkPost,
   unbookmarkPost,
 } from "../api/postApi";
+import MainHeader from "../components/layout/MainHeader";
 
 const API_ORIGIN = "http://localhost:3020";
 
@@ -180,6 +181,7 @@ function PostDetailPage({ onPostUpdated }) {
   const bookmarked = !!post?.isBookmarked;
 
   return (
+    
     <Box sx={{ minHeight: "100vh", bgcolor: "#fafafa" }}>
       <AppBar position="static" color="default" elevation={1}>
         <Toolbar>

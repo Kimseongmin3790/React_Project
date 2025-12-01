@@ -55,6 +55,7 @@ import CreatePostDialog from "../components/post/CreatePostDialog";
 import MainHeader from "../components/layout/MainHeader";
 import SideNav from "../components/layout/SideNav";
 import CaptionWithHashtags from "../components/post/CaptionWithHashtags";
+import EditPostDialog from "../components/post/EditPostDialog";
 
 const API_ORIGIN = "http://localhost:3020";
 
@@ -114,6 +115,9 @@ function FeedPage() {
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState(null);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState(null);
 
   const [commentInputs, setCommentInputs] = useState({});
 
@@ -519,25 +523,34 @@ function FeedPage() {
   };
 
   const handleEditPost = (post) => {
-    const newCaption = window.prompt(
-      "새 설명을 입력하세요",
-      post.caption || ""
+    setEditingPost(post);
+    setEditOpen(true);
+    handleClosePostMenu();
+  };
+
+  const handlePostEditSaved = (updatedPost) => {
+    // 다이얼로그 닫기
+    setEditOpen(false);
+    setEditingPost(null);
+
+    if (!updatedPost) return;
+
+    // 현재 피드에 반영 (캡션/게임 정보 업데이트)
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === updatedPost.id
+          ? {
+              ...p,
+              caption: updatedPost.caption,
+              gameId: updatedPost.gameId,
+              gameName: updatedPost.gameName ?? p.gameName,
+              gameSlug: updatedPost.gameSlug ?? p.gameSlug,
+            }
+          : p
+      )
     );
-    if (newCaption == null) return;
-    (async () => {
-      try {
-        await updatePost(post.id, {
-          caption: newCaption,
-          gameId: post.gameId,
-        });
-        setReloadKey((k) => k + 1);
-      } catch (err) {
-        console.error("updatePost error:", err);
-        alert("게시글 수정 중 오류가 발생했습니다.");
-      } finally {
-        handleClosePostMenu();
-      }
-    })();
+
+    setReloadKey(k=>k+1)
   };
 
   const handleReportPost = async (postId) => {
@@ -1064,6 +1077,18 @@ function FeedPage() {
           onClose={closeDetail}
           postId={detailPostId}
           onPostUpdated={handlePostUpdatedFromDetail}
+        />
+
+        {/* 게시글 수정 모달 */}
+        <EditPostDialog
+          open={editOpen}
+          post={editingPost}
+          gameList={gameList}
+          onClose={() => {
+            setEditOpen(false);
+            setEditingPost(null);
+          }}
+          onSaved={handlePostEditSaved}
         />
 
         {/* 글쓰기 모달 */}

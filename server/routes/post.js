@@ -36,7 +36,7 @@ router.post("/:postId/bookmark", authMiddleware, postController.bookmarkPost);
 router.delete("/:postId/bookmark", authMiddleware, postController.unbookmarkPost);
 
 // 내 글 수정/삭제
-router.put("/:postId", authMiddleware, postController.updatePost);
+router.put("/:postId", authMiddleware, uploadPostMedia, postController.updatePost);
 router.delete("/:postId", authMiddleware, postController.deletePost);
 
 module.exports = router;

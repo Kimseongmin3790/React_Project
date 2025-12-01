@@ -21,6 +21,20 @@ const CONDITIONS = {
   // 필요하면 계속 추가
 };
 
+const EXP_REWARD = {
+  FIRST_POST: 50,
+  POST_10: 100,
+  POST_50: 300,
+
+  LIKE_50: 80,
+  LIKE_200: 200,
+
+  COMMENT_20: 150,
+
+  LEVEL_5: 0,
+  LEVEL_10: 0,
+};
+
 /**
  * stats 기준으로 잠금 해제 가능한 업적을 모두 검사하고
  * 새로 언락된 업적 리스트를 반환
@@ -33,6 +47,7 @@ exports.checkAndUnlockAll = async (userId) => {
   );
 
   const newlyUnlocked = [];
+  let bonusExp = 0;
 
   for (const ach of allAchievements) {
     if (ownedIds.has(ach.id)) continue; // 이미 가진 업적이면 패스
@@ -43,8 +58,19 @@ exports.checkAndUnlockAll = async (userId) => {
     if (fn(stats)) {
       await achievementModel.insertUserAchievement(userId, ach.id);
       newlyUnlocked.push(ach);
+
+      bonusExp += EXP_REWARD[ach.code] || 0;
     }
   }
 
-  return newlyUnlocked; // 프론트에서 "새 업적 달성!" 토스트 띄울 때 쓸 수 있음
+  let updatedStats = stats;
+  if (bonusExp > 0) {
+    updatedStats = await userStatsModel.addExpFromAchievement(userId, bonusExp);
+  }
+
+  return {
+    newlyUnlocked, // 프론트에서 토스트에 사용할 업적 리스트
+    bonusExp, // 이번 이벤트로 업적 보너스로 얻은 EXP 총합
+    updatedStats, // 보너스 EXP 및 레벨 반영된 최신 stats
+  }
 };
