@@ -7,7 +7,6 @@ import {
   CardMedia,
   CardContent,
   Avatar,
-  Button,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
@@ -15,6 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import { useAuth } from "../context/AuthContext";
 import MainHeader from "../components/layout/MainHeader";
 import SideNav from "../components/layout/SideNav";
+import CaptionWithHashtags from "../components/post/CaptionWithHashtags";
 import CreatePostDialog from "../components/post/CreatePostDialog";
 import PostDetailDialog from "../components/post/postDetail";
 
@@ -325,7 +325,7 @@ function TagFeedPage() {
                       overflow: "hidden",
                     }}
                   >
-                    {p.caption}
+                    <CaptionWithHashtags text={p.caption} />
                   </Typography>
                   <Typography
                     variant="caption"

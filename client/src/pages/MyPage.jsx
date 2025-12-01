@@ -30,7 +30,6 @@ import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import ShareIcon from "@mui/icons-material/Share";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { useTheme } from "@mui/material/styles";
 
 import { io } from "socket.io-client";
 import {
@@ -51,7 +50,6 @@ import {
   bookmarkPost,
   unbookmarkPost,
   createComment,
-  updatePost,
   deletePost
 } from "../api/postApi";
 import {
@@ -63,7 +61,10 @@ import PostDetailDialog from "../components/post/postDetail";
 import CreatePostDialog from "../components/post/CreatePostDialog";
 import MainHeader from "../components/layout/MainHeader";
 import SideNav from "../components/layout/SideNav";
+import CaptionWithHashtags from "../components/post/CaptionWithHashtags";
+import EditPostDialog from "../components/post/EditPostDialog";
 import MyStatsPanel from "../components/user/MyStatsPanel";
+import { useGameList } from "../hooks/useGameList";
 
 const API_ORIGIN = "http://localhost:3020";
 
@@ -104,6 +105,7 @@ function normalizeNotification(raw) {
 function MyPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { gameList } = useGameList();
 
   // 왼쪽 메뉴 선택
   const [selectedMenu, setSelectedMenu] = useState("profile");
@@ -122,6 +124,9 @@ function MyPage() {
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState(null);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState(null);
 
   const [commentInputs, setCommentInputs] = useState({});
 
@@ -145,8 +150,6 @@ function MyPage() {
 
   const [postMenuAnchor, setPostMenuAnchor] = useState(null);
   const [postMenuTarget, setPostMenuTarget] = useState(null);
-
-  const theme = useTheme();
 
   // ───────── 공통 /me 데이터 로딩 ─────────
   const loadMyData = useCallback(async () => {
@@ -404,8 +407,6 @@ function MyPage() {
   }
 
   const myPostCount = myPosts.length;
-  const myLikeCount = likedPosts.length;
-  const myBookmarkCount = bookmarkedPosts.length;
 
   const handlePostUpdatedFromDetail = (updatedPost) => {
     setMyPosts((prev) =>
@@ -455,26 +456,34 @@ function MyPage() {
   };
 
   const handleEditPost = (post) => {
-    const newCaption = window.prompt(
-      "새 설명을 입력하세요",
-      post.caption || ""
-    );
-    if (newCaption == null) return;
+    setEditingPost(post);
+    setEditOpen(true);
+    handleClosePostMenu();
+  };
 
-    (async () => {
-      try {
-        await updatePost(post.id, {
-          caption: newCaption,
-          gameId: post.gameId, // 게임은 그대로 유지
-        });
-        await loadMyData();
-      } catch (err) {
-        console.error("마이페이지 수정 실패:", err);
-        alert("게시글 수정 중 오류가 발생했습니다.");
-      } finally {
-        handleClosePostMenu();
-      }
-    })();
+  const handlePostEditSaved = (updatedPost) => {
+    // 다이얼로그 닫기
+    setEditOpen(false);
+    setEditingPost(null);
+
+    if (!updatedPost) return;
+
+    // 현재 피드에 반영 (캡션/게임 정보 업데이트)
+    setMyPosts((prev) =>
+      prev.map((p) =>
+        p.id === updatedPost.id
+          ? {
+              ...p,
+              caption: updatedPost.caption,
+              gameId: updatedPost.gameId,
+              gameName: updatedPost.gameName ?? p.gameName,
+              gameSlug: updatedPost.gameSlug ?? p.gameSlug,
+            }
+          : p
+      )
+    );
+
+    setReloadKey(k=>k+1)
   };
 
   return (
@@ -794,7 +803,7 @@ function MyPage() {
                           wordBreak: "break-all",
                         }}
                       >
-                        {caption}
+                        <CaptionWithHashtags text={caption} />
                       </Typography>
                     </Box>
 
@@ -883,8 +892,20 @@ function MyPage() {
             open={detailOpen}
             onClose={closeDetail}
             postId={detailPostId}
+            gameList={gameList}
             onPostUpdated={handlePostUpdatedFromDetail}
-          />          
+          />
+
+          <EditPostDialog
+            open={editOpen}
+            post={editingPost}
+            gameList={gameList}
+            onClose={() => {
+              setEditOpen(false);
+              setEditingPost(null);
+            }}
+            onSaved={handlePostEditSaved}
+          />
 
           <CreatePostDialog
             open={createOpen}

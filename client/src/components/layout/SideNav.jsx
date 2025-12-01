@@ -90,9 +90,12 @@ function SideNav({ selectedMenu, onMenuClick }) {
             height: "auto",
             borderRadius: 2,
             objectFit: "contain",
-            color: "inherit"
-          }}
-          selected={selectedMenu === "main"}
+            color: "inherit",
+            cursor: "pointer",
+            "&:hover": {
+              opacity: 0.9,
+            },
+          }}          
           onClick={() => handleClickItem("main")}
         />
       </Box>

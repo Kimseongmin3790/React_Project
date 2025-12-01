@@ -30,7 +30,6 @@ import {
   bookmarkPost,
   unbookmarkPost,
 } from "../api/postApi";
-import MainHeader from "../components/layout/MainHeader";
 
 const API_ORIGIN = "http://localhost:3020";
 

@@ -18,7 +18,6 @@ import { useAuth } from "../context/AuthContext";
 import MainHeader from "../components/layout/MainHeader";
 import SideNav from "../components/layout/SideNav";
 import { fetchAchievements } from "../api/achievementApi";
-import { buildFileUrl } from "../utils/url";
 import { markAllNotificationsRead, getNotificationSummary } from "../api/notificationApi";
 import { io } from "socket.io-client";
 

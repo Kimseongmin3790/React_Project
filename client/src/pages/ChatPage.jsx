@@ -10,7 +10,6 @@ import {
   Paper,
   Tabs,
   Tab,
-  MenuItem,
   List,
   ListItemButton,
   ListItemAvatar,
@@ -25,6 +24,10 @@ import { useAuth } from "../context/AuthContext";
 import { fetchGameList } from "../api/postApi";
 import { searchUsers } from "../api/userApi";
 import { fetchUnreadSummary } from "../api/ChatApi";
+import {
+  getNotificationSummary,
+  markAllNotificationsRead,
+} from "../api/notificationApi";
 import { buildFileUrl } from "../utils/url";
 
 import SideNav from "../components/layout/SideNav";
@@ -32,13 +35,43 @@ import MainHeader from "../components/layout/MainHeader";
 import CreatePostDialog from "../components/post/CreatePostDialog";
 
 const SOCKET_URL = "http://localhost:3020";
+const API_ORIGIN = "http://localhost:3020";
+
+// 🔔 피드/마이페이지와 동일한 알림 정규화 함수
+function normalizeNotification(raw) {
+  if (!raw) return null;
+
+  const {
+    id,
+    type,
+    actorId,
+    actor_id,
+    postId,
+    post_id,
+    roomId,
+    room_id,
+    message,
+    createdAt,
+    created_at,
+  } = raw;
+
+  return {
+    id: id ?? null,
+    type,
+    actorId: actorId ?? actor_id ?? null,
+    postId: postId ?? post_id ?? null,
+    roomId: roomId ?? room_id ?? null,
+    message: message || "",
+    createdAt: createdAt || created_at || null,
+  };
+}
 
 function ChatPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const theme = useTheme();
 
-  const socketRef = useRef(null);
+  const socketRef = useRef(null);          // 채팅용 소켓
   const currentRoomIdRef = useRef(null);
   const bottomRef = useRef(null);
 
@@ -63,8 +96,13 @@ function ChatPage() {
   const [dmSearchLoading, setDmSearchLoading] = useState(false);
   const [dmSearchError, setDmSearchError] = useState("");
 
+  // 🔔 채팅방별 안읽은 메시지 요약 (ChatApi용)
   const [unreadSummary, setUnreadSummary] = useState({}); // { [roomId]: count }
-  const [lastNotification, setLastNotification] = useState(null); // 마지막 알림용
+  const [lastNotification, setLastNotification] = useState(null); // 마지막 채팅 알림용
+
+  // 🔔 상단 헤더용 글로벌 알림 상태
+  const [unreadTotal, setUnreadTotal] = useState(0);
+  const [notifications, setNotifications] = useState([]);
 
   // ────────────────────────── 공통 네비게이션 (SideNav) ──────────────────────────
   const handleMenuClick = (key) => {
@@ -82,7 +120,7 @@ function ChatPage() {
     }
   };
 
-  // ────────────────────────── 소켓 연결 ──────────────────────────
+  // ────────────────────────── 채팅 소켓 연결 ──────────────────────────
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -97,11 +135,11 @@ function ChatPage() {
     socketRef.current = s;
 
     s.on("connect", () => {
-      console.log("socket connected");
+      console.log("chat socket connected");
     });
 
     s.on("connect_error", (err) => {
-      console.error("socket connect_error:", err.message);
+      console.error("chat socket connect_error:", err.message);
     });
 
     // 새 메시지 수신
@@ -117,6 +155,7 @@ function ChatPage() {
       });
     });
 
+    // 채팅용 알림(방별 unread 카운트)
     s.on("chat:notification", (notif) => {
       console.log("chat:notification", notif);
       setUnreadSummary((prev) => {
@@ -134,6 +173,7 @@ function ChatPage() {
     };
   }, [navigate]);
 
+  // 채팅용 unread 요약 초기 로딩
   useEffect(() => {
     async function loadUnread() {
       try {
@@ -145,6 +185,89 @@ function ChatPage() {
     }
     loadUnread();
   }, []);
+
+  // ────────────────────────── 상단 헤더용 알림 소켓 / 요약 ──────────────────────────
+  useEffect(() => {
+    if (!user) return;
+
+    let notifySocket;
+
+    (async () => {
+      try {
+        const summary = await getNotificationSummary();
+        setUnreadTotal(summary.unreadTotal || 0);
+
+        if (summary.lastNotification) {
+          const n = normalizeNotification(summary.lastNotification);
+          if (n) {
+            setNotifications((prev) => {
+              const exists = prev.some((item) =>
+                item.id && n.id
+                  ? item.id === n.id
+                  : item.type === n.type &&
+                    item.postId === n.postId &&
+                    item.roomId === n.roomId &&
+                    item.createdAt === n.createdAt
+              );
+              if (exists) return prev;
+              return [n, ...prev].slice(0, 20);
+            });
+          }
+        }
+      } catch (err) {
+        console.error("알림 요약 불러오기 실패 (ChatPage):", err);
+      }
+
+      // 알림 전용 소켓
+      notifySocket = io(API_ORIGIN, {
+        auth: {
+          token: localStorage.getItem("token"),
+        },
+      });
+
+      notifySocket.on("connect_error", (err) => {
+        console.error("notify socket connect_error:", err.message);
+      });
+
+      notifySocket.on("notify:new", (payload) => {
+        const n = normalizeNotification(payload);
+        if (!n) return;
+
+        setUnreadTotal((prev) => prev + 1);
+        setNotifications((prev) => [n, ...prev].slice(0, 20));
+      });
+    })();
+
+    return () => {
+      if (notifySocket) notifySocket.disconnect();
+    };
+  }, [user]);
+
+  // 🔔 헤더에서 알림 버튼 눌러 메뉴 열릴 때 → 모두 읽음 처리
+  const handleNotificationsOpened = async () => {
+    if (unreadTotal > 0) {
+      try {
+        await markAllNotificationsRead();
+        setUnreadTotal(0);
+      } catch (err) {
+        console.error("알림 읽음 처리 실패 (ChatPage):", err);
+      }
+    }
+  };
+
+  // 🔔 알림 하나 클릭 시 동작
+  const handleNotificationClick = (n) => {
+    if (n.type === "CHAT_MESSAGE") {
+      navigate("/chat");
+    } else if (
+      n.type === "FOLLOWED_USER_POST" ||
+      n.type === "FOLLOWED_POST"
+    ) {
+      navigate("/");
+    } else {
+      console.log("unknown notification type:", n);
+    }
+  };
 
   // ────────────────────────── 게임 목록 로딩 ──────────────────────────
   useEffect(() => {
@@ -384,21 +507,21 @@ function ChatPage() {
       sx={{
         display: "flex",
         minHeight: "100vh",
-        bgcolor: theme.palette.background.default, // 🔥 다크모드 대응
+        bgcolor: theme.palette.background.default,
       }}
     >
-      {/* 왼쪽 사이드바 (sticky는 SideNav 내부에서 처리) */}
+      {/* 왼쪽 사이드바 */}
       <SideNav selectedMenu={selectedMenu} onMenuClick={handleMenuClick} />
 
       {/* 오른쪽 메인 영역 */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        {/* 공통 상단 헤더 */}
+        {/* ✅ 공통 상단 헤더: 이제 진짜 알림/레벨 다 뜸 */}
         <MainHeader
           user={user}
-          unreadTotal={0} // 글로벌 알림 안 쓰는 페이지라 0 / []로 전달
-          notifications={[]}
-          onNotificationClick={() => {}}
-          onNotificationsOpened={() => {}}
+          unreadTotal={unreadTotal}
+          notifications={notifications}
+          onNotificationClick={handleNotificationClick}
+          onNotificationsOpened={handleNotificationsOpened}
           onClickLogo={() => navigate("/")}
           onClickProfile={() => navigate("/me")}
           showSearch={false}
@@ -424,13 +547,13 @@ function ChatPage() {
           <Tabs
             value={mode}
             onChange={handleChangeMode}
-            sx={{ borderBottom: `1px solid ${theme.palette.divider}` }} // 🔥
+            sx={{ borderBottom: `1px solid ${theme.palette.divider}` }}
           >
             <Tab label="게임 채팅" value="GAME" />
             <Tab label="DM" value="DM" />
           </Tabs>
 
-          {/* 전체 안읽음 수 표시 */}
+          {/* 채팅용 전체 안읽음 수 표시 */}
           {totalUnread > 0 && (
             <Typography
               variant="body2"
@@ -440,6 +563,7 @@ function ChatPage() {
             </Typography>
           )}
 
+          {/* 최신 채팅 알림 배너 */}
           {lastNotification && (
             <Paper
               elevation={0}
@@ -449,7 +573,7 @@ function ChatPage() {
                 bgcolor:
                   theme.palette.mode === "dark"
                     ? theme.palette.action.hover
-                    : "#fffbe6", // 🔥 다크/라이트 구분
+                    : "#fffbe6",
                 border: `1px solid ${
                   theme.palette.mode === "dark"
                     ? theme.palette.warning.light
@@ -483,7 +607,7 @@ function ChatPage() {
                 alignItems: "center",
                 gap: 2,
                 mt: 1,
-                flexWrap: "wrap", // 작은 화면에서 줄바꿈 허용
+                flexWrap: "wrap",
               }}
             >
               <Box sx={{ minWidth: { xs: "100%", sm: 260 }, maxWidth: 360 }}>
@@ -492,10 +616,10 @@ function ChatPage() {
                   options={gameList}
                   getOptionLabel={(option) => option.name || ""}
                   noOptionsText="게임이 없습니다"
-                  // 현재 선택된 값
                   value={
-                    gameList.find((g) => String(g.id) === String(selectedGameId)) ||
-                    null
+                    gameList.find(
+                      (g) => String(g.id) === String(selectedGameId)
+                    ) || null
                   }
                   onChange={(e, newValue) => {
                     if (newValue) {
@@ -575,9 +699,9 @@ function ChatPage() {
                 sx={{
                   maxHeight: 200,
                   overflowY: "auto",
-                  border: `1px solid ${theme.palette.divider}`, // 🔥
+                  border: `1px solid ${theme.palette.divider}`,
                   borderRadius: 1,
-                  bgcolor: theme.palette.background.paper, // 🔥
+                  bgcolor: theme.palette.background.paper,
                 }}
               >
                 {dmSearchResults.length === 0 &&
@@ -638,7 +762,7 @@ function ChatPage() {
             sx={{
               flexGrow: 1,
               p: 2,
-              bgcolor: theme.palette.background.paper, // 🔥
+              bgcolor: theme.palette.background.paper,
               borderRadius: 2,
               overflowY: "auto",
             }}
@@ -666,7 +790,10 @@ function ChatPage() {
                   }}
                 >
                   {!isMe && (
-                    <Avatar sx={{ width: 28, height: 28, mr: 1 }} src={buildFileUrl(m.avatarUrl) || ""}>
+                    <Avatar
+                      sx={{ width: 28, height: 28, mr: 1 }}
+                      src={buildFileUrl(m.avatarUrl) || ""}
+                    >
                       {name[0]}
                     </Avatar>
                   )}
@@ -683,12 +810,13 @@ function ChatPage() {
                       borderRadius: 2,
                       px: 1.5,
                       py: 0.8,
-                      border: !isMe ? `1px solid ${
-                                        theme.palette.mode === "dark"
-                                        ? "rgba(255,255,255,0.35)"
-                                        : "rgba(0,0,0,0.18)"
-                                      }`
-                                      : "none"
+                      border: !isMe
+                        ? `1px solid ${
+                            theme.palette.mode === "dark"
+                              ? "rgba(255,255,255,0.35)"
+                              : "rgba(0,0,0,0.18)"
+                          }`
+                        : "none",
                     }}
                   >
                     {!isMe && (
@@ -729,7 +857,10 @@ function ChatPage() {
                   </Box>
 
                   {isMe && (
-                    <Avatar sx={{ width: 28, height: 28, ml: 1 }} src={buildFileUrl(user?.avatarUrl) || ""}>
+                    <Avatar
+                      sx={{ width: 28, height: 28, ml: 1 }}
+                      src={buildFileUrl(user?.avatarUrl) || ""}
+                    >
                       {(user?.nickname || user?.username || "U")[0]}
                     </Avatar>
                   )}
@@ -765,6 +896,7 @@ function ChatPage() {
           <CreatePostDialog
             open={createOpen}
             onClose={() => setCreateOpen(false)}
+            onCreated={() => setCreateOpen(false)}
           />
         </Container>
       </Box>

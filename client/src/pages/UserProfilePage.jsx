@@ -64,12 +64,6 @@ function UserProfilePage() {
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [notifications, setNotifications] = useState([]);
 
-  const [reloadKey, setReloadKey] = useState(0);
-  const [sort, setSort] = useState("latest");
-  const [period, setPeriod] = useState("all")
-  const [gameFilter, setGameFilter] = useState("");
-  const [gameSearch, setGameSearch] = useState("");
-
   const [searchText, setSearchText] = useState("");
 
   const [selectedMenu, setSelectedMenu] = useState("profile");

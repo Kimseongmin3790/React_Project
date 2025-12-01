@@ -10,7 +10,6 @@ import {
   Card,
   CardContent,
   Avatar,
-  CardMedia,
   Button,
   Divider,
 } from "@mui/material";

@@ -26,6 +26,7 @@ module.exports = async function auth(req, res, next) {
       username: user.username,
       nickname: user.nickname,
       avatarUrl: user.avatar_url,
+      bio: user.bio
     };
 
     next();

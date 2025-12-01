@@ -12,11 +12,7 @@ import {
   TextField,
   Button,
   MenuItem,
-  Chip,
   Stack,
-  List,
-  ListItemButton,
-  ListItemText,
   Snackbar,
   Alert,
 } from "@mui/material";
@@ -48,7 +44,6 @@ import {
   unbookmarkPost,
   createComment,
   deletePost,
-  updatePost,
 } from "../api/postApi";
 import { blockUser, reportPost } from "../api/userApi";
 import PostDetailDialog from "../components/post/postDetail";
@@ -109,7 +104,6 @@ function FeedPage() {
   // 게임 필터 UI
   const { gameList } = useGameList();
   const [gameSearch, setGameSearch] = useState("");
-  const [showAllGames, setShowAllGames] = useState(false);
 
   const [selectedMenu, setSelectedMenu] = useState("main");
   const [createOpen, setCreateOpen] = useState(false);
@@ -636,29 +630,6 @@ function FeedPage() {
       navigate("/me");
     } else {
       navigate(`/users/${postUserId}`);
-    }
-  };
-
-  const handleGameSearchKeyDown = (e) => {
-    if (e.key !== "Enter") return;
-
-    const q = gameSearch.trim().toLowerCase();
-    if (!q) {
-      // 검색어 비우고 Enter → 전체
-      setGameFilter("");
-      return;
-    }
-
-    // 이름에 검색어가 포함된 첫 번째 게임 찾기
-    const matched = gameList.find((g) =>
-      g.name.toLowerCase().includes(q)
-    );
-
-    if (matched) {
-      const id = String(matched.id ?? matched.gameId);
-      setGameFilter(id);
-    } else {
-      alert("해당 이름의 게임을 찾을 수 없습니다.");
     }
   };
 

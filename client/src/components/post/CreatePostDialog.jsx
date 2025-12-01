@@ -10,7 +10,6 @@ import {
   TextField,
   Typography,
   Stack,
-  MenuItem,
   IconButton,
 } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
