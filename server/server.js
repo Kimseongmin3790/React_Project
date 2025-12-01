@@ -16,6 +16,7 @@ const notificationRouter = require('./routes/notification');
 const searchRouter = require('./routes/search');
 const tagRouter = require('./routes/tag');
 const exploreRouter = require('./routes/explore');
+const achievementRoutes = require('./routes/achievement');
 
 const initChatSocket = require('./socket/chatSocket');
 const { setIo } = require('./socket/socketManager');
@@ -40,6 +41,7 @@ app.use('/api/notifications', notificationRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/tags', tagRouter);
 app.use('/api/explore', exploreRouter);
+app.use('/api/achievements', achievementRoutes);
 
 // http 서버로 감싸기
 const server = http.createServer(app);

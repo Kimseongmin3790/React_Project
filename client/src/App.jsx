@@ -13,6 +13,7 @@ import SearchResultsPage from "./pages/SearchResultsPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import TagFeedPage from "./pages/TagFeedPage";
 import ExplorePage from "./pages/ExplorePage";
+import AchievementsPage from "./pages/AchievementsPage";
 import { AuthProvider, RequireAuth } from "./context/AuthContext";
 
 function App() {
@@ -95,6 +96,13 @@ function App() {
           <Route path="/explore" element={
             <RequireAuth>
               <ExplorePage />
+            </RequireAuth>
+          }
+          />
+
+          <Route path="/achievements" element={
+            <RequireAuth>
+              <AchievementsPage />
             </RequireAuth>
           }
           />

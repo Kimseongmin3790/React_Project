@@ -21,9 +21,40 @@ import {
   fetchFollowerList,
   fetchFollowingList,
 } from "../api/followApi";
-import { markAllNotificationsRead } from "../api/notificationApi";
+import { markAllNotificationsRead, getNotificationSummary } from "../api/notificationApi";
 import PostDetailDialog from "../components/post/postDetail";
 import CreatePostDialog from "../components/post/CreatePostDialog";
+import { io } from "socket.io-client";
+
+const API_ORIGIN = "http://localhost:3020";
+
+function normalizeNotification(raw) {
+  if (!raw) return null;
+
+  const {
+    id,
+    type,
+    actorId,
+    actor_id,
+    postId,
+    post_id,
+    roomId,
+    room_id,
+    message,
+    createdAt,
+    created_at,
+  } = raw;
+
+  return {
+    id: id ?? null,
+    type,
+    actorId: actorId ?? actor_id ?? null,
+    postId: postId ?? post_id ?? null,
+    roomId: roomId ?? room_id ?? null,
+    message: message || "",
+    createdAt: createdAt || created_at || null,
+  };
+}
 
 function UserProfilePage() {
   const { user, logout } = useAuth();
@@ -134,6 +165,61 @@ function UserProfilePage() {
     })();
   }, [userId, user, navigate]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    let socket;
+
+    (async () => {
+    try {
+        const summary = await getNotificationSummary();
+        setUnreadTotal(summary.unreadTotal || 0);
+
+        if (summary.lastNotification) {
+        const n = normalizeNotification(summary.lastNotification);
+        if (n) {
+            setNotifications((prev) => {
+            const exists = prev.some((item) =>
+                item.id && n.id
+                ? item.id === n.id
+                : item.type === n.type &&
+                    item.postId === n.postId &&
+                    item.roomId === n.roomId &&
+                    item.createdAt === n.createdAt
+            );
+            if (exists) return prev;
+            return [n, ...prev].slice(0, 20);
+            });
+        }
+        }
+    } catch (err) {
+        console.error("알림 요약 불러오기 실패:", err);
+    }
+
+    socket = io(API_ORIGIN, {
+        auth: {
+        token: localStorage.getItem("token"),
+        },
+    });
+
+    socket.on("connect_error", (err) => {
+        console.error("notify socket connect_error:", err.message);
+    });
+
+    socket.on("notify:new", (payload) => {
+        const n = normalizeNotification(payload);
+        if (!n) return;
+
+        setUnreadTotal((prev) => prev + 1);
+        setNotifications((prev) => [n, ...prev].slice(0, 20));
+    });
+    })();
+
+    return () => {
+    if (socket) socket.disconnect();
+    };
+  }, [user]);
+
   const handleToggleFollow = async () => {
     if (!user || !profile || relation.isMe) return;
     if (followLoading) return;
@@ -226,15 +312,7 @@ function UserProfilePage() {
           notifications={notifications}
           onNotificationClick={handleNotificationClick}
           onNotificationsOpened={handleNotificationsOpened}
-          onClickLogo={() => {
-            setGameFilter("")
-            setGameSearch("")
-            setSort("latest")
-            setPeriod("all")
-            setReloadKey((k) => k + 1)
-            navigate("/")
-            }
-          }
+          onClickLogo={() => navigate("/")}
           onClickProfile={() => navigate("/me")}
           showSearch={true}
           searchPlaceholder="검색창"

@@ -261,6 +261,7 @@ async function deletePost(postId, userId) {
     await conn.beginTransaction();
 
     // 관련 미디어 먼저 삭제
+    await conn.query("DELETE FROM post_tags WHERE post_id = ?", [postId]);
     await conn.query("DELETE FROM post_media WHERE post_id = ?", [postId]);
 
     const [result] = await conn.query(

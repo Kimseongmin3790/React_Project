@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useGameList } from "../hooks/useGameList";
 import { useTheme } from "@mui/material/styles";
 
 import SideNav from "../components/layout/SideNav";
@@ -21,13 +22,42 @@ import MainHeader from "../components/layout/MainHeader";
 import CreatePostDialog from "../components/post/CreatePostDialog";
 import PostDetailDialog from "../components/post/postDetail";
 import { fetchExploreSummary } from "../api/exploreApi";
-import { markAllNotificationsRead } from "../api/notificationApi";
+import { markAllNotificationsRead, getNotificationSummary } from "../api/notificationApi";
 
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
 import ShuffleIcon from "@mui/icons-material/Shuffle";
+import { io } from "socket.io-client";
 
 const API_ORIGIN = "http://localhost:3020";
+
+function normalizeNotification(raw) {
+  if (!raw) return null;
+
+  const {
+    id,
+    type,
+    actorId,
+    actor_id,
+    postId,
+    post_id,
+    roomId,
+    room_id,
+    message,
+    createdAt,
+    created_at,
+  } = raw;
+
+  return {
+    id: id ?? null,
+    type,
+    actorId: actorId ?? actor_id ?? null,
+    postId: postId ?? post_id ?? null,
+    roomId: roomId ?? room_id ?? null,
+    message: message || "",
+    createdAt: createdAt || created_at || null,
+  };
+}
 
 function getMediaUrl(url) {
   if (!url) return "";
@@ -56,6 +86,7 @@ function ExplorePage() {
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState(null);
+  const { gameList } = useGameList();
 
   const [daysRange, setDaysRange] = useState("7"); // "1" | "7" | "30"
 
@@ -101,6 +132,61 @@ function ExplorePage() {
     })();
   }, [daysRange]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    let socket;
+
+    (async () => {
+    try {
+        const summary = await getNotificationSummary();
+        setUnreadTotal(summary.unreadTotal || 0);
+
+        if (summary.lastNotification) {
+        const n = normalizeNotification(summary.lastNotification);
+        if (n) {
+            setNotifications((prev) => {
+            const exists = prev.some((item) =>
+                item.id && n.id
+                ? item.id === n.id
+                : item.type === n.type &&
+                    item.postId === n.postId &&
+                    item.roomId === n.roomId &&
+                    item.createdAt === n.createdAt
+            );
+            if (exists) return prev;
+            return [n, ...prev].slice(0, 20);
+            });
+        }
+        }
+    } catch (err) {
+        console.error("알림 요약 불러오기 실패:", err);
+    }
+
+    socket = io(API_ORIGIN, {
+        auth: {
+        token: localStorage.getItem("token"),
+        },
+    });
+
+    socket.on("connect_error", (err) => {
+        console.error("notify socket connect_error:", err.message);
+    });
+
+    socket.on("notify:new", (payload) => {
+        const n = normalizeNotification(payload);
+        if (!n) return;
+
+        setUnreadTotal((prev) => prev + 1);
+        setNotifications((prev) => [n, ...prev].slice(0, 20));
+    });
+    })();
+
+    return () => {
+    if (socket) socket.disconnect();
+    };
+  }, [user]);
+
   const openDetail = (postId) => {
     setDetailPostId(postId);
     setDetailOpen(true);
@@ -142,6 +228,21 @@ function ExplorePage() {
     } else {
       console.log("unknown notification type:", n);
     }
+  };
+
+  const handlePostUpdatedFromDetail = (updatedPost) => {
+    if (!updatedPost) return;
+    setRandomPosts((prev) => 
+      prev.map((p) => 
+        p.id === updatedPost.id
+          ? {
+            ...p,
+            thumbUrl: updatedPost.thumbUrl ?? p.thumbUrl,
+            thumbType: updatedPost.thumbType ?? p.thumbType
+            }
+          : p
+      )
+    );
   };
 
   const rangeLabel =
@@ -527,7 +628,8 @@ function ExplorePage() {
             open={detailOpen}
             onClose={closeDetail}
             postId={detailPostId}
-            onPostUpdated={() => {}}
+            gameList={gameList}
+            onPostUpdated={handlePostUpdatedFromDetail}
           />
         </Container>
       </Box>

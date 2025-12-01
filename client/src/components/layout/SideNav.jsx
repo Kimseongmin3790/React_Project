@@ -20,6 +20,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import SettingsIcon from "@mui/icons-material/Settings";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import TravelExploreIcon from "@mui/icons-material/TravelExplore";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -199,6 +200,18 @@ function SideNav({ selectedMenu, onMenuClick }) {
           },
         }}
       >
+        <MenuItem
+          onClick={() => {
+            navigate("/achievements");
+            handleCloseMore();
+          }}
+        >
+          <ListItemIcon>
+            <EmojiEventsIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>모든 업적</ListItemText>
+        </MenuItem>
+
         <MenuItem
           onClick={() => {
             navigate("/me/edit"); // 계정 설정 페이지
