@@ -43,7 +43,7 @@
 ### 2. 게시글 작성 (CreatePostDialog)
 
 사이드바의 **글 쓰기 버튼** 클릭 시 모달로 게시글 작성
-
+![Feed write](/images/feed-write.png)
 - **기능**
   - 게임 선택 (검색 가능한 드롭다운)
   - 캡션 입력 + 해시태그 인식
@@ -60,7 +60,7 @@
 ### 3. 검색 (Search)
 
 상단 헤더 검색창에서 **통합 검색**
-
+![search page](/images/page-searchResult.png)
 - **검색 대상**
   - 유저 (닉네임/아이디)
   - 클립(게시글)
@@ -77,7 +77,7 @@
 ### 4. 게임 랭킹 (인기 TOP 10 게임)
 
 최근 기간 기준으로 **인기 게임 TOP 10**을 보여주는 페이지
-
+![top10game page](/images/page-top10game.png)
 - **지표**
   - 게시글 수
   - 누적 좋아요 수
@@ -95,7 +95,7 @@
 ### 5. 탐색 탭 (Explore)
 
 새로운 클립과 태그, 게임을 발견할 수 있는 **탐색 페이지**
-
+![explore page](/images/page-explore.png)
 - **섹션 구성**
   1. **인기 태그**
      - 최근 N일 기준 사용량이 많은 태그 TOP N
