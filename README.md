@@ -1,4 +1,4 @@
-# 🎮 GClip – 게임 하이라이트 공유 SNS
+<img width="471" height="864" alt="image" src="https://github.com/user-attachments/assets/4a8e30be-eafa-4dfc-8495-6c62781ebeb7" /># 🎮 GClip – 게임 하이라이트 공유 SNS
 
 ![Main Feed](/images/page-main.png)
 게임 스크린샷·하이라이트 클립을 올리고 공유하는 **게임 특화 SNS 서비스**입니다.  
@@ -163,7 +163,7 @@ socket.io 기반 **실시간 채팅 기능**
 ### 9. 유저 레벨 & 업적 (진행 중)
 
 `user_stats`, `achievements`, `user_achievements` 테이블 기반
-
+![page achievements](/images/page-achievements.png)
 - **경험치/레벨**
   - 게시글 작성, 좋아요/댓글을 받았을 때 EXP 누적
   - EXP에 따라 자동 레벨 계산 (`level = floor(exp / 100) + 1`)
