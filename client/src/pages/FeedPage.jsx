@@ -16,7 +16,9 @@ import {
   Stack,
   List,
   ListItemButton,
-  ListItemText
+  ListItemText,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
@@ -40,7 +42,6 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   fetchFeed,
-  fetchGameList,
   likePost,
   unlikePost,
   bookmarkPost,
@@ -56,6 +57,7 @@ import MainHeader from "../components/layout/MainHeader";
 import SideNav from "../components/layout/SideNav";
 import CaptionWithHashtags from "../components/post/CaptionWithHashtags";
 import EditPostDialog from "../components/post/EditPostDialog";
+import { useGameList } from "../hooks/useGameList";
 
 const API_ORIGIN = "http://localhost:3020";
 
@@ -105,13 +107,15 @@ function FeedPage() {
   const [error, setError] = useState("");
 
   // 게임 필터 UI
+  const { gameList } = useGameList();
   const [gameSearch, setGameSearch] = useState("");
-  const [gameList, setGameList] = useState([]);
   const [showAllGames, setShowAllGames] = useState(false);
 
   const [selectedMenu, setSelectedMenu] = useState("main");
   const [createOpen, setCreateOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [postSnackbarOpen, setPostSnackbarOpen] = useState(false);
+  const [postSnackbarMessage, setPostSnackbarMessage] = useState("");
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState(null);
@@ -229,8 +233,16 @@ function FeedPage() {
     }
   };
 
-  const handlePostCreated = () => {
+  const handlePostCreated = (data) => {
     setReloadKey((k) => k + 1);
+
+    setPostSnackbarMessage("게시글이 등록되었습니다.");
+    setPostSnackbarOpen(true);
+  };
+
+  const handlePostSnackbarClose = (event, reason) => {
+    if (reason === "clickaway") return;
+    setPostSnackbarOpen(false);
   };
 
   // ⭐ 랭킹 / 검색 결과 페이지에서 넘어올 때 gameFilter 적용
@@ -242,19 +254,6 @@ function FeedPage() {
       // setGameSearch("");
     }
   }, [location]);
-
-  // 게임 목록 로딩
-  useEffect(() => {
-    async function loadGames() {
-      try {
-        const games = await fetchGameList();
-        setGameList(Array.isArray(games) ? games : []);
-      } catch (err) {
-        console.error("게임 목록 불러오기 실패:", err);
-      }
-    }
-    loadGames();
-  }, []);
 
   // ⭐ 피드 로딩 (중복 useEffect 제거 + 빈 문자열은 아예 전송 안 함)
   useEffect(() => {
@@ -484,15 +483,63 @@ function FeedPage() {
   };
 
   const handlePostUpdatedFromDetail = (updatedPost) => {
+    if (!updatedPost) return;
+
+    if (updatedPost._reloadFeed) {
+      setReloadKey((k) => k + 1);
+      return;
+    }
+
     setPosts((prev) =>
       prev.map((p) =>
         p.id === updatedPost.id
           ? {
               ...p,
-              isLiked: updatedPost.isLiked,
-              isBookmarked: updatedPost.isBookmarked,
-              likeCount: updatedPost.likeCount,
-              commentCount: updatedPost.commentCount,
+              // 🔹 본문 / 게임 정보
+              caption:
+                typeof updatedPost.caption !== "undefined"
+                  ? updatedPost.caption
+                  : p.caption,
+              gameId:
+                typeof updatedPost.gameId !== "undefined"
+                  ? updatedPost.gameId
+                  : p.gameId,
+              gameName:
+                typeof updatedPost.gameName !== "undefined"
+                  ? updatedPost.gameName
+                  : p.gameName,
+              gameSlug:
+                typeof updatedPost.gameSlug !== "undefined"
+                  ? updatedPost.gameSlug
+                  : p.gameSlug,
+
+              // 🔹 썸네일 (getPostById에서 내려줄 경우)
+              thumbUrl:
+                typeof updatedPost.thumbUrl !== "undefined"
+                  ? updatedPost.thumbUrl
+                  : p.thumbUrl,
+              thumbType:
+                typeof updatedPost.thumbType !== "undefined"
+                  ? updatedPost.thumbType
+                  : p.thumbType,
+
+              // 🔹 좋아요/북마크/댓글
+              isLiked:
+                typeof updatedPost.isLiked !== "undefined"
+                  ? updatedPost.isLiked
+                  : p.isLiked,
+              isBookmarked:
+                typeof updatedPost.isBookmarked !== "undefined"
+                  ? updatedPost.isBookmarked
+                  : p.isBookmarked,
+              likeCount:
+                typeof updatedPost.likeCount !== "undefined"
+                  ? updatedPost.likeCount
+                  : p.likeCount,
+              commentCount:
+                typeof updatedPost.commentCount !== "undefined"
+                  ? updatedPost.commentCount
+                  : p.commentCount,
             }
           : p
       )
@@ -1077,6 +1124,7 @@ function FeedPage() {
           onClose={closeDetail}
           postId={detailPostId}
           onPostUpdated={handlePostUpdatedFromDetail}
+          gameList={gameList}
         />
 
         {/* 게시글 수정 모달 */}
@@ -1097,6 +1145,45 @@ function FeedPage() {
           onClose={() => setCreateOpen(false)}
           onCreated={handlePostCreated}
         />
+
+        <Snackbar
+          open={postSnackbarOpen}
+          autoHideDuration={4000}
+          onClose={handlePostSnackbarClose}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={handlePostSnackbarClose}
+            severity="success"
+            sx={{ width: "100%" }}
+            action={
+              <Stack direction="row" spacing={1}>
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => {
+                    handlePostSnackbarClose();
+                    navigate("/");
+                  }}
+                >
+                  메인
+                </Button>
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => {
+                    handlePostSnackbarClose();
+                    navigate("/me");
+                  }}
+                >
+                  마이페이지
+                </Button>
+              </Stack>
+            }
+          >
+            {postSnackbarMessage}
+          </Alert>
+        </Snackbar>
       </Box>
     </Box>
   );

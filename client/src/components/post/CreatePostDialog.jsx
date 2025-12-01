@@ -95,7 +95,7 @@ function CreatePostDialog({ open, onClose, onCreated }) {
         setAchToastOpen(true);                  // 토스트 열기
       }
 
-      if (onCreated) onCreated(); // 피드 새로고침 등
+      if (onCreated) onCreated(data); // 피드 새로고침 등
       onClose();
     } catch (err) {
       console.error("createPost error:", err);

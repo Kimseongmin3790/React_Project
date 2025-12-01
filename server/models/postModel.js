@@ -67,10 +67,13 @@ async function getPostById({ postId, currentUserId = null }) {
       p.comment_count AS commentCount,
       p.created_at AS createdAt,
       IF(pl.user_id IS NULL, 0, 1) AS isLiked,
-      IF(pb.user_id IS NULL, 0, 1) AS isBookmarked
+      IF(pb.user_id IS NULL, 0, 1) AS isBookmarked,
+      pm.url AS thumbUrl,
+      pm.media_type AS thumbType
     FROM posts p
     JOIN users u ON p.user_id = u.id
     JOIN games g ON p.game_id = g.id
+    JOIN post_media pm ON p.id = pm.post_id
     LEFT JOIN post_likes pl
       ON pl.post_id = p.id AND pl.user_id = ?
     LEFT JOIN post_bookmarks pb

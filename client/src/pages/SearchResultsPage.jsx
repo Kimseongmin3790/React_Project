@@ -29,6 +29,7 @@ import {
   markAllNotificationsRead,
   getNotificationSummary,
 } from "../api/notificationApi";
+import { useGameList } from "../hooks/useGameList";
 
 const API_ORIGIN = "http://localhost:3020";
 
@@ -72,6 +73,7 @@ function SearchResultsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get("query") || "";
+  const { gameList } = useGameList();
 
   const [tab, setTab] = useState("all");
   const [data, setData] = useState({
@@ -238,10 +240,51 @@ function SearchResultsPage() {
         p.id === updatedPost.id
           ? {
               ...p,
-              isLiked: updatedPost.isLiked,
-              isBookmarked: updatedPost.isBookmarked,
-              likeCount: updatedPost.likeCount,
-              commentCount: updatedPost.commentCount,
+              // 🔹 본문 / 게임 정보
+              caption:
+                typeof updatedPost.caption !== "undefined"
+                  ? updatedPost.caption
+                  : p.caption,
+              gameId:
+                typeof updatedPost.gameId !== "undefined"
+                  ? updatedPost.gameId
+                  : p.gameId,
+              gameName:
+                typeof updatedPost.gameName !== "undefined"
+                  ? updatedPost.gameName
+                  : p.gameName,
+              gameSlug:
+                typeof updatedPost.gameSlug !== "undefined"
+                  ? updatedPost.gameSlug
+                  : p.gameSlug,
+
+              // 🔹 썸네일 (getPostById에서 내려줄 경우)
+              thumbnailUrl:
+                typeof updatedPost.thumbUrl !== "undefined"
+                  ? updatedPost.thumbUrl
+                  : p.thumbUrl,
+              thumbType:
+                typeof updatedPost.thumbType !== "undefined"
+                  ? updatedPost.thumbType
+                  : p.thumbType,
+
+              // 🔹 좋아요/북마크/댓글
+              isLiked:
+                typeof updatedPost.isLiked !== "undefined"
+                  ? updatedPost.isLiked
+                  : p.isLiked,
+              isBookmarked:
+                typeof updatedPost.isBookmarked !== "undefined"
+                  ? updatedPost.isBookmarked
+                  : p.isBookmarked,
+              likeCount:
+                typeof updatedPost.likeCount !== "undefined"
+                  ? updatedPost.likeCount
+                  : p.likeCount,
+              commentCount:
+                typeof updatedPost.commentCount !== "undefined"
+                  ? updatedPost.commentCount
+                  : p.commentCount,
             }
           : p
       ),
@@ -278,44 +321,52 @@ function SearchResultsPage() {
 
   const renderPosts = () => {
     if (!data.posts.length) {
-      return <Typography>검색된 클립이 없습니다.</Typography>;
+      return <Typography>검색된 피드가 없습니다.</Typography>;
     }
-    return data.posts.map((p) => (
-      <Card
-        key={p.id}
-        sx={{ mb: 2, cursor: "pointer" }}
-        onClick={() => openDetail(p.id)} // ✅ 상세 모달 오픈
+
+    return (
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "repeat(3, 1fr)",
+            sm: "repeat(4, 1fr)",
+            md: "repeat(5, 1fr)",
+          },
+          gap: 1,
+        }}
       >
-        {p.thumbnailUrl && (
-          <CardMedia
-            component={p.thumbType === "VIDEO" ? "video" : "img"}
-            src={getMediaUrl(p.thumbnailUrl)}
-            controls={p.thumbType === "VIDEO"}
-            sx={{ maxHeight: 280 }}
-          />
-        )}
-        <CardContent>
-          <Typography
-            variant="body2"
+        {data.posts.map((p) => (
+          <Box
+            key={p.id}
             sx={{
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
+              position: "relative",
+              width: "100%",
+              aspectRatio: "1 / 1",
               overflow: "hidden",
+              cursor: "pointer",
+              bgcolor: "#ddd",
+              borderRadius: 1,
             }}
+            onClick={() => openDetail(p.id)}
           >
-            {p.caption}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{ color: "text.secondary", mt: 0.5, display: "block" }}
-          >
-            {p.gameName} · 좋아요 {p.likeCount ?? 0} · 댓글{" "}
-            {p.commentCount ?? 0}
-          </Typography>
-        </CardContent>
-      </Card>
-    ));
+            {p.thumbnailUrl && (
+              <Box
+                component={p.thumbType === "VIDEO" ? "video" : "img"}
+                src={getMediaUrl(p.thumbnailUrl)}
+                controls={p.thumbType === "VIDEO"}
+                sx={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+            )}
+          </Box>
+        ))}
+      </Box>
+    );
   };
 
   const renderTags = () => {
@@ -422,7 +473,7 @@ function SearchResultsPage() {
           <Tabs value={tab} onChange={handleChangeTab} sx={{ mb: 2 }}>
             <Tab label="통합" value="all" />
             <Tab label="유저" value="user" />
-            <Tab label="클립" value="post" />
+            <Tab label="피드" value="post" />
             <Tab label="태그" value="tag" />
             <Tab label="게임" value="game" />
           </Tabs>
@@ -440,7 +491,7 @@ function SearchResultsPage() {
                   <Divider sx={{ my: 2 }} />
 
                   <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-                    클립
+                    피드
                   </Typography>
                   {renderPosts()}
                   <Divider sx={{ my: 2 }} />
@@ -477,6 +528,7 @@ function SearchResultsPage() {
           open={detailOpen}
           onClose={closeDetail}
           postId={detailPostId}
+          gameList={gameList}
           onPostUpdated={handlePostUpdatedFromDetail}
         />
       </Box>
