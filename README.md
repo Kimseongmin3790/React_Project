@@ -218,6 +218,7 @@ root
    ├─ routes/
    ├─ services/      # hashtagService, achievementService, notificationService 등
    └─ db.js
+```
 
 ---
 
