@@ -465,16 +465,43 @@ function FeedPage() {
   // 🔔 개별 알림 클릭 시
   const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
-      navigate("/chat");
-    } else if (
-      n.type === "FOLLOWED_USER_POST" ||
-      n.type === "FOLLOWED_POST"
-    ) {
-      navigate("/");
-    } else {
-      console.log("unknown notification type:", n);
+      if (n.roomId) {
+        navigate("/chat", { state: { openRoomId: n.roomId } });
+      } else {
+        navigate("/chat");
+      }
+      return;
     }
+    // 게시글과 관련된 알림들
+    if (
+      n.type === "FOLLOWED_USER_POST" || // 팔로우한 유저 새 글
+      n.type === "FOLLOWED_POST" ||      // 혹시 나중에 따로 쓸 경우
+      n.type === "COMMENT_MENTION"       // 댓글 멘션
+    ) {
+      if (n.postId) {
+        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
+        navigate("/", { state: { openPostId: n.postId } });
+      } else {
+        navigate("/");
+      }
+      return;
+    }
+
+    console.log("unknown notification type:", n);
   };
+
+  // 🔔 알림에서 넘어올 때 특정 게시글 디테일 자동 오픈
+  useEffect(() => {
+    const openPostId = location.state?.openPostId;
+    if (!openPostId) return;
+
+    // 바로 디테일 모달 오픈
+    setDetailPostId(openPostId);
+    setDetailOpen(true);
+
+    // state를 지워서 뒤로가기 등에서 다시 열리지 않게
+    navigate(location.pathname, { replace: true });
+  }, [location.state, navigate]);
 
   const handlePostUpdatedFromDetail = (updatedPost) => {
     if (!updatedPost) return;

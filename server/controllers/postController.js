@@ -2,6 +2,7 @@ const postModel = require('../models/postModel');
 const db = require("../db");
 const gameModel = require('../models/gameModel');
 const notificationService = require('../services/notificationService');
+const notificationModel = require('../models/notificationModel');
 const userStatsModel = require('../models/userStatsModel');
 const achievementService = require('../services/achievementService');
 const { syncPostHashtags } = require("../services/hashtagService");
@@ -384,6 +385,7 @@ exports.getComments = async (req, res) => {
         c.id,
         c.post_id AS postId,
         c.user_id AS userId,
+        c.parent_comment_id AS parentCommentId,
         c.content,
         c.created_at AS createdAt,
         u.username,
@@ -404,14 +406,14 @@ exports.getComments = async (req, res) => {
   }
 };
 
-exports.createComment = async (req, res) => {
+exports.createComment = async (req, res, next) => {
   const user = req.user;
   if (!user) {
     return res.status(401).json({ message: "인증이 필요합니다." });
   }
 
   const postId = Number.parseInt(req.params.postId, 10);
-  const { content } = req.body;
+  const { content, parentCommentId } = req.body;
 
   if (!postId) {
     return res.status(400).json({ message: "잘못된 게시글입니다." });
@@ -420,36 +422,52 @@ exports.createComment = async (req, res) => {
     return res.status(400).json({ message: "댓글 내용을 입력해주세요." });
   }
 
-  const conn = await db.getConnection();
+  let conn;
   let postAuthorId = null;
   let commentId = null;
   let createdAt = null;
 
   try {
+    conn = await db.getConnection();
     await conn.beginTransaction();
 
+    // 1) 게시글 작성자 조회
     const [postRows] = await conn.execute(
       `SELECT user_id FROM posts WHERE id = ?`,
       [postId]
     );
     if (postRows.length === 0) {
       await conn.rollback();
-      conn.release();
       return res.status(404).json({ message: "게시글을 찾을 수 없습니다." });
     }
     postAuthorId = postRows[0].user_id;
 
-    // 1) 댓글 INSERT
+    // 2) 부모 댓글 검증 (대댓글인 경우)
+    let parentIdForInsert = null;
+    if (parentCommentId) {
+      const pid = Number(parentCommentId);
+      if (!Number.isNaN(pid)) {
+        const [pcRows] = await conn.execute(
+          `SELECT id FROM post_comments WHERE id = ? AND post_id = ?`,
+          [pid, postId]
+        );
+        if (pcRows.length > 0) {
+          parentIdForInsert = pid;
+        }
+      }
+    }
+
+    // 3) 댓글 INSERT
     const [result] = await conn.execute(
       `
-      INSERT INTO post_comments (post_id, user_id, content)
-      VALUES (?, ?, ?)
+      INSERT INTO post_comments (post_id, user_id, parent_comment_id, content)
+      VALUES (?, ?, ?, ?)
       `,
-      [postId, user.id, content.trim()]
+      [postId, user.id, parentIdForInsert, content.trim()]
     );
     commentId = result.insertId;
 
-    // 2) posts.comment_count 증가
+    // 4) posts.comment_count 증가
     await conn.execute(
       `
       UPDATE posts
@@ -459,6 +477,7 @@ exports.createComment = async (req, res) => {
       [postId]
     );
 
+    // 5) 방금 INSERT한 created_at 조회
     const [cRows] = await conn.execute(
       `SELECT created_at FROM post_comments WHERE id = ?`,
       [commentId]
@@ -466,48 +485,160 @@ exports.createComment = async (req, res) => {
     createdAt = cRows[0]?.created_at || new Date();
 
     await conn.commit();
-
-    let achievementResult = {
-      newlyUnlocked: [],
-      bonusExp: 0,
-      updatedStats: null,
-    };
-
-    if (postAuthorId && postAuthorId !== user.id) {
+  } catch (err) {
+    console.error("createComment error (tx):", err);
+    if (conn) {
       try {
-        await userStatsModel.updateOnReceivedComment(postAuthorId);
-        achievementResult =
-          await achievementService.checkAndUnlockAll(postAuthorId);
-        if (achievementResult.newlyUnlocked.length > 0) {
-          console.log(
-            "comment로 언락된 업적:",
-            achievementResult.newlyUnlocked.map((a) => a.code)
-          );
-        }
-      } catch (achErr) {
-        console.error("achievement check error (createComment):", achErr);
+        await conn.rollback();
+      } catch (e) {
+        console.error("rollback error:", e);
       }
     }
-    conn.release();
-
-    // 프론트에서 바로 쓸 수 있게 작성자 정보 포함해서 리턴
-    res.status(201).json({
-      comment: {
-        id: commentId,
-        postId,
-        userId: user.id,
-        content,
-        createdAt,
-      },
-      achievementResult,
-    });
-  } catch (err) {
-    console.error("createComment error:", err);
-    await conn.rollback();
-    res.status(500).json({ message: "서버 오류가 발생했습니다." });
+    return res.status(500).json({ message: "서버 오류가 발생했습니다." });
   } finally {
-    conn.release();
+    if (conn) conn.release();
   }
+
+  // ─────────────────────────────────────────────
+  //  여기부터는 트랜잭션 밖: 통계/업적/알림 처리
+  //  (실패해도 댓글 자체는 이미 저장된 상태)
+  // ─────────────────────────────────────────────
+
+  // 1) 게시글 작성자: 댓글 을 ‘받은’ 쪽 업적
+  let achievementResult = {
+    newlyUnlocked: [],
+    bonusExp: 0,
+    updatedStats: null,
+  };
+
+  if (postAuthorId && postAuthorId !== user.id) {
+    try {
+      await userStatsModel.updateOnReceivedComment(postAuthorId);
+      achievementResult =
+        await achievementService.checkAndUnlockAll(postAuthorId);
+    } catch (achErr) {
+      console.error("achievement check error (postAuthor, createComment):", achErr);
+    }
+  }
+
+  // 2) 댓글 작성자: "댓글 달기" 관련 업적 (ex. 첫 댓글, 댓글 10개 등)
+  let commentAuthorAchievementResult = {
+    newlyUnlocked: [],
+    bonusExp: 0,
+    updatedStats: null,
+  };
+
+  try {
+    await userStatsModel.updateOnWriteComment(user.id);
+    commentAuthorAchievementResult =
+      await achievementService.checkAndUnlockAll(user.id);
+  } catch (err) {
+    console.error("achievement check error (commentAuthor, createComment):", err);
+  }
+
+  // 3) 멘션 처리: @username 패턴 찾기
+  let mentionResults = [];
+  try {
+    const mentionRegex = /@([^\s@]+)/g;
+    const usernames = new Set();
+    let m;
+
+    while ((m = mentionRegex.exec(content)) !== null) {      
+      if (m[1]) {
+        usernames.add(m[1]);
+      }
+    }
+
+    if (usernames.size > 0) {
+      const usernameList = Array.from(usernames);
+      const placeholders = usernameList.map(() => "?").join(",");
+      const [rows] = await db.query(
+        `
+        SELECT id, username, nickname
+        FROM users
+        WHERE username IN (${placeholders})
+           OR nickname IN (${placeholders})
+        `,
+        [...usernameList, ...usernameList]
+      );
+
+      for (const row of rows) {        
+        if (row.id === user.id) continue;
+
+        // 3-1) 멘션 알림 생성
+        try {
+          await notificationService.notifyCommentMention({
+            receiverId: row.id,
+            actor: user,
+            postId,
+            content,
+          });
+        } catch (notifErr) {
+          console.error("createForCommentMention error:", notifErr);
+        }
+
+        // 3-2) 멘션 관련 통계 / 업적 (멘션 ‘된’ 유저 기준)
+        try {
+          await userStatsModel.updateOnMentioned(row.id);
+          const achRes = await achievementService.checkAndUnlockAll(row.id);
+
+          mentionResults.push({
+            userId: row.id,
+            username: row.username,
+            newlyUnlocked: achRes.newlyUnlocked || [],
+          });
+        } catch (mentionAchErr) {
+          console.error(
+            "achievement check error (mentioned user):",
+            mentionAchErr
+          );
+        }
+      }
+    }
+
+    if (hasAnyMentionTarget) {
+      try {
+        const firstMentionRes = 
+          await achievementService.unlockByCode(user.id, "FIRST_MENTION");
+        if (
+          firstMentionRes &&
+          firstMentionRes.newlyUnlocked &&
+          firstMentionRes.newlyUnlocked.length > 0
+        ) {
+          console.log(
+            "FIRST_MENTION 언락(댓글 작성자):",
+            firstMentionRes.newlyUnlocked.map((a) => a.code)
+          );
+        }
+      } catch (authorMentionErr) {
+        console.error(
+          "achievement unlock error (FIRST_MENTION, commentAuthor):",
+          authorMentionErr
+        );
+      }
+    }
+
+  } catch (mentionErr) {
+    console.error("mention 처리 중 오류:", mentionErr);
+  }
+
+  // 최종 응답
+  return res.status(201).json({
+    comment: {
+      id: commentId,
+      postId,
+      userId: user.id,
+      parentCommentId: parentCommentId || null,
+      content,
+      createdAt,
+      nickname: user.nickname,
+      username: user.username,
+      avatarUrl: user.avatarUrl,
+    },
+    achievementResult,
+    commentAuthorAchievementResult,
+    mentionResults,
+  });
 };
 
 exports.getPostDetail = async (req, res) => {
@@ -771,5 +902,83 @@ exports.deletePost = async (req, res) => {
   } catch (err) {
     console.error("deletePost error:", err);
     res.status(500).json({ message: "게시글 삭제 중 오류가 발생했습니다." });
+  }
+};
+
+// 댓글 좋아요
+exports.likeComment = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const commentId = parseInt(req.params.commentId, 10);
+
+    await postModel.insertCommentLike(commentId, userId);
+    const likeCount = await postModel.countCommentLikes(commentId);
+
+    res.json({ liked: true, likeCount });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 댓글 좋아요 취소
+exports.unlikeComment = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const commentId = parseInt(req.params.commentId, 10);
+
+    await postModel.deleteCommentLike(commentId, userId);
+    const likeCount = await postModel.countCommentLikes(commentId);
+
+    res.json({ liked: false, likeCount });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 댓글 수정
+exports.updateComment = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const commentId = parseInt(req.params.commentId, 10);
+    const { content } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: "댓글 내용을 입력해 주세요." });
+    }
+
+    const ok = await postModel.updateComment(
+      commentId,
+      userId,
+      content.trim()
+    );
+    if (!ok) {
+      return res
+        .status(403)
+        .json({ error: "수정 권한이 없거나 댓글이 존재하지 않습니다." });
+    }
+
+    const updated = await postModel.getCommentById(commentId, userId);
+    res.json({ comment: updated });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 댓글 삭제
+exports.deleteComment = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const commentId = parseInt(req.params.commentId, 10);
+
+    const ok = await postModel.deleteComment(commentId, userId);
+    if (!ok) {
+      return res
+        .status(403)
+        .json({ error: "삭제 권한이 없거나 댓글이 존재하지 않습니다." });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
   }
 };

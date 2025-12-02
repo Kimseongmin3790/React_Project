@@ -105,6 +105,33 @@ exports.getUserProfile = async (req, res) => {
   }
 };
 
+exports.getUserByUsername = async (req, res, next) => {
+  try {
+    const { username } = req.params;
+
+    if (!username) {
+      return res.status(400).json({ message: "username이 필요합니다." });
+    }
+
+    const user = await userModel.findByUsername(username);
+
+    if (!user) {
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    }
+
+    // 필요한 필드만 내려주기 (원하면 더 추가)
+    return res.json({
+      id: user.id,
+      username: user.username,
+      nickname: user.nickname,
+      avatarUrl: user.avatarUrl,
+    });
+  } catch (err) {
+    console.error("getUserByUsername error:", err);
+    next(err); // 혹은 res.status(500)...
+  }
+};
+
 // POST /api/users/:targetUserId/block
 exports.blockUser = async (req, res) => {
   try {

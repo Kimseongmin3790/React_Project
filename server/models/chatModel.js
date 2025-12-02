@@ -1,16 +1,16 @@
-const pool = require("../db");
+const db = require("../db");
 
 // 1) 게임 방 가져오거나 생성
 async function getOrCreateGameRoom(gameId) {
   // 이미 있는지 먼저 확인
-  const [rows] = await pool.query(
+  const [rows] = await db.query(
     "SELECT * FROM chat_room WHERE type = 'GAME' AND game_id = ? LIMIT 1",
     [gameId]
   );
   if (rows.length > 0) return rows[0];
 
   // 없으면 생성
-  const [result] = await pool.query(
+  const [result] = await db.query(
     "INSERT INTO chat_room (type, game_id) VALUES ('GAME', ?)",
     [gameId]
   );
@@ -25,7 +25,7 @@ async function getOrCreateGameRoom(gameId) {
 // 2) DM 방 가져오거나 생성 (userId1 ↔ userId2)
 async function getOrCreateDmRoom(userId1, userId2) {
   // 두 사람 w가 모두 들어있는 DM방을 찾는다
-  const [rows] = await pool.query(
+  const [rows] = await db.query(
     `
     SELECT cr.*
     FROM chat_room cr
@@ -42,7 +42,7 @@ async function getOrCreateDmRoom(userId1, userId2) {
   if (rows.length > 0) return rows[0];
 
   // 없으면 새로 방 만들고 두 유저 연결
-  const conn = await pool.getConnection();
+  const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 
@@ -68,12 +68,12 @@ async function getOrCreateDmRoom(userId1, userId2) {
 
 // 3) 메시지 저장
 async function insertMessage({ roomId, senderId, content }) {
-  const [result] = await pool.query(
+  const [result] = await db.query(
     "INSERT INTO chat_message (room_id, sender_id, content) VALUES (?, ?, ?)",
     [roomId, senderId, content]
   );
 
-  const [rows] = await pool.query(
+  const [rows] = await db.query(
     `
     SELECT
       m.id,
@@ -98,7 +98,7 @@ async function insertMessage({ roomId, senderId, content }) {
 
 // 4) 최근 N개 메시지 (히스토리 불러오기용)
 async function getRecentMessages(roomId, limit = 50) {
-  const [rows] = await pool.query(
+  const [rows] = await db.query(
     `
     SELECT
       m.id,
@@ -123,14 +123,14 @@ async function getRecentMessages(roomId, limit = 50) {
 }
 
 async function addUserToRoom(roomId, userId) {
-  await pool.query(
+  await db.query(
     "INSERT IGNORE INTO chat_room_user (room_id, user_id) VALUES (?, ?)",
     [roomId, userId]
   );
 }
 
 async function upsertLastRead(roomId, userId, date) {
-  await pool.query(
+  await db.query(
     `
     INSERT INTO chat_read (room_id, user_id, last_read_at)
     VALUES (?, ?, ?)
@@ -141,7 +141,7 @@ async function upsertLastRead(roomId, userId, date) {
 }
 
 async function getRoomMembers(roomId) {
-  const [rows] = await pool.query(
+  const [rows] = await db.query(
     "SELECT user_id AS userId FROM chat_room_user WHERE room_id = ?",
     [roomId]
   );
@@ -149,7 +149,7 @@ async function getRoomMembers(roomId) {
 }
 
 async function getUnreadSummary(userId) {
-  const [rows] = await pool.query(
+  const [rows] = await db.query(
     `
     SELECT
       m.room_id AS roomId,
@@ -170,6 +170,71 @@ async function getUnreadSummary(userId) {
   return rows; // [{ roomId: 3, unreadCount: 5 }, ...]
 }
 
+async function getRoomMetaById(roomId, currentUserId) {
+  const [rooms] = await db.query(
+    `
+    SELECT
+      cr.id,
+      cr.type,
+      cr.game_id,
+      g.name AS gameName
+    FROM chat_room cr
+    LEFT JOIN games g ON cr.game_id = g.id
+    WHERE cr.id = ?
+    `,
+    [roomId]
+  );
+
+  if (!rooms.length) {
+    return null;
+  }
+
+  const room = rooms[0];
+
+  // GAME 채팅방인 경우
+  if (room.type === "GAME") {
+    return {
+      roomId: room.id,
+      type: "GAME",
+      gameId: room.game_id,
+      gameName: room.gameName || null,
+    };
+  }
+
+  // DM 채팅방인 경우
+  if (room.type === "DM") {
+    const [users] = await db.query(
+      `
+      SELECT user_id
+      FROM chat_room_user
+      WHERE room_id = ?
+      `,
+      [roomId]
+    );
+
+    // 이론상 DM이면 2명 있어야 하지만 방어코드
+    if (!users.length) {
+      return {
+        roomId: room.id,
+        type: "DM",
+        otherUserId: null,
+      };
+    }
+
+    // 나 아닌 다른 유저 찾기
+    const other = users.find((u) => u.user_id !== currentUserId);
+
+    return {
+      roomId: room.id,
+      type: "DM",
+      otherUserId: other ? other.user_id : null,
+    };
+  }
+
+  // 혹시 모를 이상한 타입
+  return null;
+}
+
 module.exports = {
   getOrCreateGameRoom,
   getOrCreateDmRoom,
@@ -179,4 +244,5 @@ module.exports = {
   upsertLastRead,
   getRoomMembers,
   getUnreadSummary,
+  getRoomMetaById
 };

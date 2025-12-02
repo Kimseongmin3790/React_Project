@@ -242,15 +242,29 @@ function GameRankingPage() {
   // 🔔 개별 알림 클릭 시 동작
   const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
-      navigate("/chat");
-    } else if (
-      n.type === "FOLLOWED_USER_POST" ||
-      n.type === "FOLLOWED_POST"
-    ) {
-      navigate("/");
-    } else {
-      console.log("unknown notification type:", n);
+      if (n.roomId) {
+        navigate("/chat", { state: { openRoomId: n.roomId } });
+      } else {
+        navigate("/chat");
+      }
+      return;
     }
+    // 게시글과 관련된 알림들
+    if (
+      n.type === "FOLLOWED_USER_POST" || // 팔로우한 유저 새 글
+      n.type === "FOLLOWED_POST" ||      // 혹시 나중에 따로 쓸 경우
+      n.type === "COMMENT_MENTION"       // 댓글 멘션
+    ) {
+      if (n.postId) {
+        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
+        navigate("/", { state: { openPostId: n.postId } });
+      } else {
+        navigate("/");
+      }
+      return;
+    }
+
+    console.log("unknown notification type:", n);
   };
 
   // 막대 퍼센트 계산용 최대 score (0이면 1로 보정)

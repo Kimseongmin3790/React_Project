@@ -44,3 +44,14 @@ exports.insertUserAchievement = async (userId, achievementId) => {
     [userId, achievementId]
   );
 };
+
+exports.getAchievementByCode = async (code) => {
+  const [rows] = await db.query(
+    `SELECT id, code, name, description, icon_url
+     FROM achievements
+     WHERE code = ?
+     LIMIT 1`,
+    [code]
+  );
+  return rows[0] || null;
+};

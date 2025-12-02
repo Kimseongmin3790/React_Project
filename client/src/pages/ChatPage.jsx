@@ -19,11 +19,11 @@ import {
 import Autocomplete from "@mui/material/Autocomplete";
 
 import { useTheme } from "@mui/material/styles";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { fetchGameList } from "../api/postApi";
 import { searchUsers } from "../api/userApi";
-import { fetchUnreadSummary } from "../api/ChatApi";
+import { fetchUnreadSummary, fetchFindChatRoomById } from "../api/ChatApi";
 import {
   getNotificationSummary,
   markAllNotificationsRead,
@@ -68,6 +68,7 @@ function normalizeNotification(raw) {
 
 function ChatPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const theme = useTheme();
 
@@ -103,6 +104,7 @@ function ChatPage() {
   // 🔔 상단 헤더용 글로벌 알림 상태
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [notifications, setNotifications] = useState([]);
+  const initialRoomId = location.state?.openRoomId || null;
 
   // ────────────────────────── 공통 네비게이션 (SideNav) ──────────────────────────
   const handleMenuClick = (key) => {
@@ -186,6 +188,34 @@ function ChatPage() {
     loadUnread();
   }, []);
 
+  useEffect(() => {
+    if (!initialRoomId) return;
+    if (!socketRef.current) return;   // 소켓 아직 준비 안 됐으면 리턴
+
+    // 1) roomId로 방 메타 정보 조회 (GAME/DM, gameId, otherUserId)
+    (async () => {
+      try {
+        const meta = await fetchFindChatRoomById(initialRoomId);
+        if (!meta) {
+          console.error("room meta 없음");
+          return;
+        }
+        if (meta.type === "GAME" && meta.gameId) {
+          setMode("GAME");
+          setSelectedGameId(String(meta.gameId));
+          joinGameRoomById(meta.gameId);
+        } else if (meta.type === "DM" && meta.otherUserId) {
+          setMode("DM");
+          handleJoinDmRoom(meta.otherUserId);
+        } else {
+          console.warn("알 수 없는 room meta:", meta);
+        }
+      } catch (err) {
+        console.error("openRoomId 처리 중 오류:", err);
+      }
+    })();
+  }, [initialRoomId]);
+
   // ────────────────────────── 상단 헤더용 알림 소켓 / 요약 ──────────────────────────
   useEffect(() => {
     if (!user) return;
@@ -258,15 +288,29 @@ function ChatPage() {
   // 🔔 알림 하나 클릭 시 동작
   const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
-      navigate("/chat");
-    } else if (
-      n.type === "FOLLOWED_USER_POST" ||
-      n.type === "FOLLOWED_POST"
-    ) {
-      navigate("/");
-    } else {
-      console.log("unknown notification type:", n);
+      if (n.roomId) {
+        navigate("/chat", { state: { openRoomId: n.roomId } });
+      } else {
+        navigate("/chat");
+      }
+      return;
     }
+    // 게시글과 관련된 알림들
+    if (
+      n.type === "FOLLOWED_USER_POST" ||
+      n.type === "FOLLOWED_POST" ||
+      n.type === "COMMENT_MENTION"
+    ) {
+      if (n.postId) {
+        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
+        navigate("/", { state: { openPostId: n.postId } });
+      } else {
+        navigate("/");
+      }
+      return;
+    }
+
+    console.log("unknown notification type:", n);
   };
 
   // ────────────────────────── 게임 목록 로딩 ──────────────────────────

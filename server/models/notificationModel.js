@@ -57,13 +57,26 @@ async function createForChatMessage(receiverIds, senderId, roomId, content) {
   );
 }
 
+async function createForCommentMention(receiverId, actorId, postId, preview) {
+  await db.query(
+    `
+    INSERT INTO notifications
+      (user_id, type, actor_id, post_id, room_id, message)
+    VALUES (?, 'COMMENT_MENTION', ?, ?, NULL, ?)
+    `,
+    [receiverId, actorId, postId, preview]
+  );
+}
+
 // 요약
 async function getSummaryByUserId(userId) {
   const [[counts]] = await db.query(
     `
     SELECT
       SUM(CASE WHEN type = 'CHAT_MESSAGE' THEN 1 ELSE 0 END) AS unreadChat,
-      SUM(CASE WHEN type = 'FOLLOWED_USER_POST' THEN 1 ELSE 0 END) AS unreadPost,
+      SUM(CASE WHEN type IN ('FOLLOWED_USER_POST','COMMENT_MENTION')
+           THEN 1 ELSE 0 END) AS unreadPost,
+      SUM(CASE WHEN type = 'COMMENT_MENTION' THEN 1 ELSE 0 END) AS unreadMention,
       COUNT(*) AS unreadTotal
     FROM notifications
     WHERE user_id = ? AND is_read = 0
@@ -85,6 +98,7 @@ async function getSummaryByUserId(userId) {
   return {
     unreadChat: counts.unreadChat || 0,
     unreadPost: counts.unreadPost || 0,
+    unreadMention: counts.unreadMention || 0,
     unreadTotal: counts.unreadTotal || 0,
     lastNotification: lastRows[0] || null,
   };
@@ -104,6 +118,7 @@ async function markAllReadByUserId(userId) {
 module.exports = {
   createForFollowers,
   createForChatMessage,
+  createForCommentMention,
   getSummaryByUserId,
   markAllReadByUserId,
 };

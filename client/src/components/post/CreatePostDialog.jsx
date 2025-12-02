@@ -1,5 +1,5 @@
 // src/components/post/CreatePostDialog.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -11,6 +11,8 @@ import {
   Typography,
   Stack,
   IconButton,
+  Avatar,
+  Paper
 } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
@@ -18,6 +20,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import Autocomplete from "@mui/material/Autocomplete";
 
 import { createPost, fetchGameList } from "../../api/postApi";
+import { searchUsers } from "../../api/userApi";
 import AchievementToast from "../achievement/AchievementToast";
 
 function CreatePostDialog({ open, onClose, onCreated }) {
@@ -37,6 +40,11 @@ function CreatePostDialog({ open, onClose, onCreated }) {
   const [achievementCount, setAchievementCount] = useState(0);
 
   const hasMedia = imageFiles.length > 0 || videoFiles.length > 0;
+
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionCandidates, setMentionCandidates] = useState([]);
+  const mentionDebounceRef = useRef(null);
 
   // 게임 목록 로딩
   useEffect(() => {
@@ -61,6 +69,14 @@ function CreatePostDialog({ open, onClose, onCreated }) {
       setVideoFiles([]);
       setError("");
       setLoading(false);
+
+      setMentionQuery("");
+      setMentionOpen(false);
+      setMentionCandidates([]);
+      if (mentionDebounceRef.current) {
+        clearTimeout(mentionDebounceRef.current);
+        mentionDebounceRef.current = null;
+      }
     }
   }, [open]);
 
@@ -115,6 +131,55 @@ function CreatePostDialog({ open, onClose, onCreated }) {
   const handleVideoChange = (e) => {
     const files = Array.from(e.target.files || []);
     setVideoFiles(files.slice(0, 1)); // 영상은 1개만
+  };
+
+  const handleChangeCaption = (e) => {
+    const value = e.target.value;
+    setCaption(value);
+
+    // 끝에서 @xxxx 패턴 찾기
+    const match = value.match(/@([A-Za-z0-9_가-힣]{1,20})$/);
+    if (!match) {
+      setMentionQuery("");
+      setMentionOpen(false);
+      setMentionCandidates([]);
+      return;
+    }
+
+    const q = match[1];
+    setMentionQuery(q);
+
+    if (q.length < 1) {
+      setMentionOpen(false);
+      setMentionCandidates([]);
+      return;
+    }
+
+    // 디바운스
+    if (mentionDebounceRef.current) {
+      clearTimeout(mentionDebounceRef.current);
+    }
+
+    mentionDebounceRef.current = setTimeout(async () => {
+      try {
+        const list = await searchUsers(q);
+        setMentionCandidates(list || []);
+        setMentionOpen(list && list.length > 0);
+      } catch (err) {
+        console.error("caption mention search error:", err);
+        setMentionOpen(false);
+      }
+    }, 200);
+  };
+
+  const handleSelectMention = (u) => {
+    // 캡션 끝의 @xxxx 를 @username 으로 교체 + 공백 하나
+    setCaption((prev) =>
+      prev.replace(/@([A-Za-z0-9_가-힣]{1,20})$/, `@${u.username} `)
+    );
+    setMentionQuery("");
+    setMentionOpen(false);
+    setMentionCandidates([]);
   };
 
   return (
@@ -180,15 +245,73 @@ function CreatePostDialog({ open, onClose, onCreated }) {
                 )}
               />
 
-              {/* 설명 */}
-              <TextField
-                label="설명 (하이라이트 설명, 상황 등)"
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                multiline
-                minRows={3}
-                fullWidth
-              />
+              {/* 설명 + 멘션 자동완성 */}
+              <Box sx={{ position: "relative" }}>
+                <TextField
+                  label="설명 (하이라이트 설명, 상황 등)"
+                  value={caption}
+                  onChange={handleChangeCaption}
+                  multiline
+                  minRows={3}
+                  fullWidth
+                />
+
+                {mentionOpen && mentionCandidates.length > 0 && (
+                  <Paper
+                    elevation={3}
+                    sx={{
+                      position: "absolute",
+                      left: 0,
+                      right: 0,
+                      top: "100%",
+                      mt: 0.5,
+                      zIndex: 20,
+                      maxHeight: 220,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {mentionCandidates.map((u) => {
+                      const displayName =
+                        u.nickname || u.username || `user#${u.id}`;
+                      return (
+                        <Box
+                          key={u.id}
+                          sx={{
+                            px: 1.5,
+                            py: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            cursor: "pointer",
+                            "&:hover": {
+                              backgroundColor: "action.hover",
+                            },
+                          }}
+                          onClick={() => handleSelectMention(u)}
+                        >
+                          <Avatar
+                            sx={{ width: 28, height: 28 }}
+                            src={u.avatarUrl || undefined}
+                          >
+                            {displayName[0]}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2">
+                              {displayName}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              @{u.username}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Paper>
+                )}
+              </Box>
 
               {/* 이미지 업로드 박스 */}
               <Box>

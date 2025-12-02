@@ -16,6 +16,8 @@ const CONDITIONS = {
 
   COMMENT_20: (s) => s.received_comments >= 20,
 
+  FIRST_MENTIONED: (s) => s.mentioned_count >= 1,
+
   LEVEL_5: (s) => s.level >= 5,
   LEVEL_10: (s) => s.level >= 10,
   // 필요하면 계속 추가
@@ -30,6 +32,9 @@ const EXP_REWARD = {
   LIKE_200: 200,
 
   COMMENT_20: 150,
+
+  FIRST_MENTION: 30,
+  FIRST_MENTIONED: 30,
 
   LEVEL_5: 0,
   LEVEL_10: 0,
@@ -58,7 +63,6 @@ exports.checkAndUnlockAll = async (userId) => {
     if (fn(stats)) {
       await achievementModel.insertUserAchievement(userId, ach.id);
       newlyUnlocked.push(ach);
-
       bonusExp += EXP_REWARD[ach.code] || 0;
     }
   }
@@ -73,4 +77,11 @@ exports.checkAndUnlockAll = async (userId) => {
     bonusExp, // 이번 이벤트로 업적 보너스로 얻은 EXP 총합
     updatedStats, // 보너스 EXP 및 레벨 반영된 최신 stats
   }
+};
+
+exports.unlockByCode= async (userId, code) => {
+  const ach = await achievementModel.getAchievementByCode(code);
+  if (!ach) return null;
+  await achievementModel.insertUserAchievement(userId, ach.id);
+  return ach;
 };

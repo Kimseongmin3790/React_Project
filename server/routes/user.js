@@ -443,6 +443,8 @@ router.get("/:userId", authMiddleware, userController.getUserProfile);
 router.get("/:userId/followers", authMiddleware, userController.listFollowers);
 router.get("/:userId/following", authMiddleware, userController.listFollowing);
 
+router.get("/by-username/:username", authMiddleware, userController.getUserByUsername);
+
 router.post("/:targetUserId/block", authMiddleware, userController.blockUser);
 router.delete("/:targetUserId/block", authMiddleware, userController.unblockUser);
 

@@ -21,3 +21,8 @@ export async function fetchUnreadSummary() {
   });
   return map; // { [roomId]: count }
 }
+
+export async function fetchFindChatRoomById(initialRoomId) {
+  const res = await api.get(`/chat/rooms/${initialRoomId}/meta`);
+  return res.data;
+}

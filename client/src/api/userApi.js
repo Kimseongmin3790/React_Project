@@ -76,6 +76,13 @@ export async function fetchUserPosts(userId, { page = 1, limit = 12 } = {}) {
   return res.data;
 }
 
+export async function fetchUserByUsername(username) {
+  const res = await api.get(
+    `/users/by-username/${encodeURIComponent(username)}`
+  );
+  return res.data; // { id, username, nickname, avatarUrl }
+}
+
 export async function blockUser(targetUserId) {
   const res = await api.post(`/users/${targetUserId}/block`);
   return res.data;
@@ -102,3 +109,4 @@ export async function fetchMyStats() {
   const res = await api.get("/users/me/stats");
   return res.data; // { stats: {...}, achievements: [...] }
 }
+

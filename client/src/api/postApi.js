@@ -84,8 +84,13 @@ export async function fetchComments(postId) {
   return res.data.comments || [];
 }
 
-export async function createComment(postId, content) {
-  const res = await api.post(`/posts/${postId}/comments`, { content });
+export async function createComment(postId, content, parentCommentId = null) {
+  const body = { content };
+  if (parentCommentId) {
+    body.parentCommentId = parentCommentId;
+  }
+  
+  const res = await api.post(`/posts/${postId}/comments`, body);
   return res.data; // 새로 생성된 댓글 객체
 }
 
@@ -141,4 +146,25 @@ export async function updatePost(postId, { caption, gameId, images = [], videos 
 export async function deletePost(postId) {
   const res = await api.delete(`/posts/${postId}`);
   return res.data;
+}
+
+
+export async function likeComment(commentId) {
+  const res = await api.post(`/posts/comments/${commentId}/like`);
+  return res.data; // { liked: true, likeCount }
+}
+
+export async function unlikeComment(commentId) {
+  const res = await api.delete(`/posts/comments/${commentId}/like`);
+  return res.data; // { liked: false, likeCount }
+}
+
+export async function updateCommentApi(commentId, content) {
+  const res = await api.put(`/posts/comments/${commentId}`, { content });
+  return res.data.comment; // 업데이트된 comment 객체
+}
+
+export async function deleteCommentApi(commentId) {
+  const res = await api.delete(`/posts/comments/${commentId}`);
+  return res.data; // { ok: true }
 }
