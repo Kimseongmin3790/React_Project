@@ -1,4 +1,3 @@
-// services/achievementService.js
 const userStatsModel = require("../models/userStatsModel");
 const achievementModel = require("../models/achievementModel");
 
@@ -20,7 +19,6 @@ const CONDITIONS = {
 
   LEVEL_5: (s) => s.level >= 5,
   LEVEL_10: (s) => s.level >= 10,
-  // 필요하면 계속 추가
 };
 
 const EXP_REWARD = {

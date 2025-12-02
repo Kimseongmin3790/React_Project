@@ -13,15 +13,17 @@ api.interceptors.request.use((config)=>{
     return config;
 })
 
+// 안읽은 채팅 목록 가져오기
 export async function fetchUnreadSummary() {
   const res = await api.get("/chat/unread");
   const map = {};
   (res.data.rooms || []).forEach((r) => {
     map[r.roomId] = r.unreadCount;
   });
-  return map; // { [roomId]: count }
+  return map;
 }
 
+// 새 채팅 알림 클릭 시 해당 채팅방 정보 조회
 export async function fetchFindChatRoomById(initialRoomId) {
   const res = await api.get(`/chat/rooms/${initialRoomId}/meta`);
   return res.data;

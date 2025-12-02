@@ -1,4 +1,3 @@
-// server/services/notificationService.js
 const notificationModel = require("../models/notificationModel");
 const { getIo } = require("../socket/socketManager");
 
@@ -54,7 +53,7 @@ async function notifyChatMessage({ sender, roomId, content, receiverIds }) {
 async function notifyCommentMention({ receiverId, actor, postId, content }) {
   const preview = content.slice(0, 80);
 
-  // 1) DB에 알림 적재
+  // DB에 알림 적재
   await notificationModel.createForCommentMention(
     receiverId,
     actor.id,
@@ -62,7 +61,7 @@ async function notifyCommentMention({ receiverId, actor, postId, content }) {
     preview
   );
 
-  // 2) 소켓으로 실시간 알림 전송
+  // 소켓으로 실시간 알림 전송
   const io = getIo();
   io.to(`user:${receiverId}`).emit("notify:new", {
     type: "COMMENT_MENTION",

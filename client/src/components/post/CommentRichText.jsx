@@ -1,4 +1,3 @@
-// src/components/post/CommentRichText.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
@@ -8,7 +7,6 @@ import { fetchUserByUsername } from "../../api/userApi";
 function splitText(text) {
   if (!text) return [];
 
-  // @mention 이랑 #hashtag 둘 다 잡아보자
   const regex = /(@[^\s@#]+|#[^\s@#]+)/g;
   const parts = [];
   let lastIndex = 0;
@@ -26,7 +24,7 @@ function splitText(text) {
     if (token.startsWith("@")) {
       parts.push({
         type: "mention",
-        value: token.slice(1), // @ 떼고 username/nickname
+        value: token.slice(1),
         raw: token,
       });
     } else if (token.startsWith("#")) {
@@ -68,7 +66,6 @@ export default function CommentRichText({ text }) {
         return;
       }
 
-      // 자기 자신이면 /me, 아니면 /users/:id
       if (user && target.id === user.id) {
         navigate("/me");
       } else {

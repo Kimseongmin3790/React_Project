@@ -1,4 +1,3 @@
-// server/scripts/syncGamesFromRawg.js
 const path = require('path');
 require('dotenv').config({
   path: path.join(__dirname, "../../.env"),
@@ -35,13 +34,12 @@ async function fetchRawgGames(page) {
       search: "Overwatch",
       page,
       page_size: PAGE_SIZE,
-      ordering: "-added", // 많이 추가된 순(인기 위주)
+      ordering: "-added",
       search_precise: true,
       search_exact: true
     },
   });
 
-  // RAWG 응답 구조: { results: [ ... ], next, previous ... }
   return res.data.results || [];
 }
 
@@ -72,7 +70,7 @@ async function main() {
   const pool = await createPool();
 
   try {
-    console.log("🚀 RAWG → games 테이블 동기화 시작");
+    console.log("RAWG → games 테이블 동기화 시작");
 
     for (let page = 1; page <= MAX_PAGES; page++) {
       console.log(`\n📄 Page ${page} 로딩 중...`);
@@ -86,9 +84,9 @@ async function main() {
       for (const g of list) {
         try {
           await upsertGame(pool, g);
-          console.log(`  ✅ ${g.name} (${g.slug}) 저장 완료`);
+          console.log(`  ${g.name} (${g.slug}) 저장 완료`);
         } catch (err) {
-          console.error(`  ❌ ${g.name} upsert 중 오류:`, err.message);
+          console.error(`  ${g.name} upsert 중 오류:`, err.message);
         }
       }
 
@@ -96,9 +94,9 @@ async function main() {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
-    console.log("\n✅ 동기화 완료!");
+    console.log("\n동기화 완료!");
   } catch (err) {
-    console.error("❌ 전체 동기화 중 오류:", err);
+    console.error("전체 동기화 중 오류:", err);
   } finally {
     await pool.end();
   }

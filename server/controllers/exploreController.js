@@ -1,4 +1,3 @@
-// controllers/exploreController.js
 const tagModel = require("../models/tagModel");
 const gameModel = require("../models/gameModel");
 const postModel = require("../models/postModel");
@@ -11,9 +10,9 @@ exports.getExploreSummary = async (req, res) => {
     const postsLimit = Number(req.query.postsLimit) || 20;
 
     const [popularTags, trendingGames, randomPosts] = await Promise.all([
-      tagModel.findPopularTags({ limit: tagsLimit, days }),            // 위에서 만든 함수 재사용
-      gameModel.findTrendingGames({ limit: gamesLimit, days }),        // 새로 추가
-      postModel.findRandomPosts({ limit: postsLimit }),                 // 새로 추가
+      tagModel.findPopularTags({ limit: tagsLimit, days }),
+      gameModel.findTrendingGames({ limit: gamesLimit, days }),
+      postModel.findRandomPosts({ limit: postsLimit }), 
     ]);
 
     res.json({

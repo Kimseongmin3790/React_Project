@@ -2,13 +2,14 @@ const userStatsModel = require("../models/userStatsModel");
 const userModel = require("../models/userModel");
 const achievementModel = require("../models/achievementModel");
 
+// 내 레벨/업적 정보 조회
 exports.getMyStats = async (req, res) => {
   const userId = req.user.id;
   try {
     const stats = await userStatsModel.getMyStats(userId);
     const achievements = await achievementModel.getUserAchievements(userId);
 
-    const expForNextLevel = stats.level * 100; // 레벨 n -> n+1 기준 exp
+    const expForNextLevel = stats.level * 100;
     const expIntoLevel = stats.exp - (stats.level - 1) * 100;
     const expProgressPercent = Math.max(
       0,
@@ -34,12 +35,12 @@ exports.getMyStats = async (req, res) => {
   }
 };
 
-// GET /users/:userId/followers
+// 팔로워 목록
 exports.listFollowers = async (req, res) => {
   try {
     let { userId } = req.params;
     if (userId === "me") {
-      userId = req.user.id; // authMiddleware에서 넣어주는 현재 로그인 유저
+      userId = req.user.id;
     }
 
     const targetId = Number(userId);
@@ -55,7 +56,7 @@ exports.listFollowers = async (req, res) => {
   }
 };
 
-// GET /users/:userId/following
+// 팔로우 목록
 exports.listFollowing = async (req, res) => {
   try {
     let { userId } = req.params;
@@ -76,14 +77,13 @@ exports.listFollowing = async (req, res) => {
   }
 };
 
-// GET /users/:userId
+// 타겟 유저 정보 조회
 exports.getUserProfile = async (req, res) => {
   try {
     let { userId } = req.params;
 
-    // /users/me 로도 접근 가능하게 하고 싶으면
     if (userId === "me") {
-      userId = req.user.id; // authMiddleware에서 세팅해준 로그인 유저 id
+      userId = req.user.id;
     }
 
     const idNum = Number(userId);
@@ -105,6 +105,7 @@ exports.getUserProfile = async (req, res) => {
   }
 };
 
+// username으로 유저 정보 조회
 exports.getUserByUsername = async (req, res, next) => {
   try {
     const { username } = req.params;
@@ -119,7 +120,6 @@ exports.getUserByUsername = async (req, res, next) => {
       return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
     }
 
-    // 필요한 필드만 내려주기 (원하면 더 추가)
     return res.json({
       id: user.id,
       username: user.username,
@@ -128,11 +128,10 @@ exports.getUserByUsername = async (req, res, next) => {
     });
   } catch (err) {
     console.error("getUserByUsername error:", err);
-    next(err); // 혹은 res.status(500)...
+    next(err);
   }
 };
 
-// POST /api/users/:targetUserId/block
 exports.blockUser = async (req, res) => {
   try {
     const blockerId = req.user.id;
@@ -152,7 +151,6 @@ exports.blockUser = async (req, res) => {
   }
 };
 
-// DELETE /api/users/:targetUserId/block
 exports.unblockUser = async (req, res) => {
   try {
     const blockerId = req.user.id;

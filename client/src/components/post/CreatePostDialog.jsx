@@ -1,4 +1,3 @@
-// src/components/post/CreatePostDialog.jsx
 import React, { useEffect, useState, useRef } from "react";
 import {
   Dialog,
@@ -60,7 +59,6 @@ function CreatePostDialog({ open, onClose, onCreated }) {
     loadGames();
   }, [open]);
 
-  // 모달 닫힐 때 폼 초기화
   useEffect(() => {
     if (!open) {
       setSelectedGameId("");
@@ -105,12 +103,12 @@ function CreatePostDialog({ open, onClose, onCreated }) {
 
       const unlocked = data.unlockedAchievements || [];
       if (unlocked.length > 0) {
-        setLastAchievement(unlocked[0]);        // 첫 번째 업적 정보
-        setAchievementCount(unlocked.length);   // 몇 개나 열렸는지
-        setAchToastOpen(true);                  // 토스트 열기
+        setLastAchievement(unlocked[0]);
+        setAchievementCount(unlocked.length);
+        setAchToastOpen(true);
       }
 
-      if (onCreated) onCreated(data); // 피드 새로고침 등
+      if (onCreated) onCreated(data);
       onClose();
     } catch (err) {
       console.error("createPost error:", err);
@@ -137,7 +135,6 @@ function CreatePostDialog({ open, onClose, onCreated }) {
     const value = e.target.value;
     setCaption(value);
 
-    // 끝에서 @xxxx 패턴 찾기
     const match = value.match(/@([A-Za-z0-9_가-힣]{1,20})$/);
     if (!match) {
       setMentionQuery("");
@@ -173,7 +170,6 @@ function CreatePostDialog({ open, onClose, onCreated }) {
   };
 
   const handleSelectMention = (u) => {
-    // 캡션 끝의 @xxxx 를 @username 으로 교체 + 공백 하나
     setCaption((prev) =>
       prev.replace(/@([A-Za-z0-9_가-힣]{1,20})$/, `@${u.username} `)
     );
@@ -198,7 +194,7 @@ function CreatePostDialog({ open, onClose, onCreated }) {
             pr: 2,
           }}
         >
-          새 게시글
+          새 피드
           <IconButton
             size="small"
             onClick={onClose}

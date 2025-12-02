@@ -5,7 +5,6 @@ const api = axios.create({
   withCredentials: false,
 });
 
-// 토큰 자동 첨부
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -14,6 +13,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// 내 레벨, 업적 가져오기
 export async function fetchMyStats() {
   const res = await api.get("/users/me/stats");
   return res.data;

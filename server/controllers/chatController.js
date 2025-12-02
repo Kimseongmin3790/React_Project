@@ -1,4 +1,3 @@
-// server/controllers/chatController.js
 const chatModel = require("../models/chatModel");
 
 exports.getRoomMeta = async (req, res, next) => {

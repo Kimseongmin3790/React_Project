@@ -13,8 +13,8 @@ api.interceptors.request.use((config)=>{
     return config;
 })
 
-// GET /api/explore/summary
+// 탐색 데이터 가져오기
 export async function fetchExploreSummary(params = {}) {
   const res = await api.get("/explore/summary", { params });
-  return res.data; // { popularTags, trendingGames, randomPosts }
+  return res.data;
 }

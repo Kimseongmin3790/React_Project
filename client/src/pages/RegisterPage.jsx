@@ -47,7 +47,6 @@ function RegisterPage() {
 
     try {
       const data = await register(form);
-      // data = { message, token, user }
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));

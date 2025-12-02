@@ -13,6 +13,7 @@ api.interceptors.request.use((config)=>{
     return config;
 })
 
+// 모든 업적 목록 가져오기
 export async function fetchAchievements() {
   const res = await api.get("/achievements");
   return res.data.achievements || [];

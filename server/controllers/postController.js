@@ -42,7 +42,7 @@ exports.createPost = async (req, res) => {
 
     await conn.beginTransaction();
 
-    // 1) posts INSERT
+    // posts INSERT
     const [result] = await conn.execute(
       `INSERT INTO posts (user_id, game_id, caption)
        VALUES (?, ?, ?)`,
@@ -129,14 +129,13 @@ exports.createPost = async (req, res) => {
         commentCount: 0,
         createdAt: new Date().toISOString(),
       },
-      userStats,                // 프론트에서 헤더/마이페이지 갱신용
-      unlockedAchievements: newlyUnlocked, // 토스트용
-      bonusExp,                // "EXP +XX" 보여줄 때 사용
+      userStats,            
+      unlockedAchievements: newlyUnlocked, 
+      bonusExp,           
     });
   } catch (statsErr) {
     console.error("stats/achievement error (createPost):", statsErr);
     conn.release();
-    // stats 부분에서 에러 나도, 게시글은 이미 올라갔으니 최소한 post는 반환
     return res.status(201).json({
       message: "게시글이 등록되었습니다. (통계/업적 반영 중 일부 오류)",
       post: {
@@ -161,7 +160,7 @@ exports.createPost = async (req, res) => {
 
 };
 
-// GET /api/posts  (피드 조회: 로그인 여부와 상관 없이 전체 피드)
+// 피드 조회: 로그인 여부와 상관 없이 전체 피드
 exports.getFeed = async (req, res) => {
   try {
     const page = Number.parseInt(req.query.page, 10) || 1;
@@ -184,6 +183,7 @@ exports.getFeed = async (req, res) => {
   }
 };
 
+// 피드 좋아요
 exports.likePost = async (req, res) => {
   const user = req.user;
   if (!user) {
@@ -271,6 +271,7 @@ exports.likePost = async (req, res) => {
   }
 };
 
+// 피드 좋아요 해제
 exports.unlikePost = async (req, res) => {
   const user = req.user;
   if (!user) {
@@ -322,6 +323,7 @@ exports.unlikePost = async (req, res) => {
   }
 };
 
+// 피드 북마크
 exports.bookmarkPost = async (req, res) => {
   const user = req.user;
   if (!user) {
@@ -347,6 +349,7 @@ exports.bookmarkPost = async (req, res) => {
   }
 };
 
+// 피드 북마크 해제
 exports.unbookmarkPost = async (req, res) => {
   const user = req.user;
   if (!user) {
@@ -372,6 +375,7 @@ exports.unbookmarkPost = async (req, res) => {
   }
 };
 
+// 타겟 피드 댓글 조회
 exports.getComments = async (req, res) => {
   try {
     const postId = Number.parseInt(req.params.postId, 10);
@@ -406,6 +410,7 @@ exports.getComments = async (req, res) => {
   }
 };
 
+// 댓글 작성
 exports.createComment = async (req, res, next) => {
   const user = req.user;
   if (!user) {
@@ -431,7 +436,7 @@ exports.createComment = async (req, res, next) => {
     conn = await db.getConnection();
     await conn.beginTransaction();
 
-    // 1) 게시글 작성자 조회
+    // 게시글 작성자 조회
     const [postRows] = await conn.execute(
       `SELECT user_id FROM posts WHERE id = ?`,
       [postId]
@@ -442,7 +447,7 @@ exports.createComment = async (req, res, next) => {
     }
     postAuthorId = postRows[0].user_id;
 
-    // 2) 부모 댓글 검증 (대댓글인 경우)
+    // 부모 댓글 검증 (대댓글인 경우)
     let parentIdForInsert = null;
     if (parentCommentId) {
       const pid = Number(parentCommentId);
@@ -457,7 +462,7 @@ exports.createComment = async (req, res, next) => {
       }
     }
 
-    // 3) 댓글 INSERT
+    // 댓글 INSERT
     const [result] = await conn.execute(
       `
       INSERT INTO post_comments (post_id, user_id, parent_comment_id, content)
@@ -467,7 +472,7 @@ exports.createComment = async (req, res, next) => {
     );
     commentId = result.insertId;
 
-    // 4) posts.comment_count 증가
+    // posts.comment_count 증가
     await conn.execute(
       `
       UPDATE posts
@@ -477,7 +482,7 @@ exports.createComment = async (req, res, next) => {
       [postId]
     );
 
-    // 5) 방금 INSERT한 created_at 조회
+    // 방금 INSERT한 created_at 조회
     const [cRows] = await conn.execute(
       `SELECT created_at FROM post_comments WHERE id = ?`,
       [commentId]
@@ -499,12 +504,7 @@ exports.createComment = async (req, res, next) => {
     if (conn) conn.release();
   }
 
-  // ─────────────────────────────────────────────
-  //  여기부터는 트랜잭션 밖: 통계/업적/알림 처리
-  //  (실패해도 댓글 자체는 이미 저장된 상태)
-  // ─────────────────────────────────────────────
-
-  // 1) 게시글 작성자: 댓글 을 ‘받은’ 쪽 업적
+  // 게시글 작성자: 댓글 을 ‘받은’ 쪽 업적
   let achievementResult = {
     newlyUnlocked: [],
     bonusExp: 0,
@@ -521,7 +521,7 @@ exports.createComment = async (req, res, next) => {
     }
   }
 
-  // 2) 댓글 작성자: "댓글 달기" 관련 업적 (ex. 첫 댓글, 댓글 10개 등)
+  // 댓글 작성자: "댓글 달기" 관련 업적 (ex. 첫 댓글, 댓글 10개 등)
   let commentAuthorAchievementResult = {
     newlyUnlocked: [],
     bonusExp: 0,
@@ -536,7 +536,7 @@ exports.createComment = async (req, res, next) => {
     console.error("achievement check error (commentAuthor, createComment):", err);
   }
 
-  // 3) 멘션 처리: @username 패턴 찾기
+  // 멘션 처리: @username 패턴 찾기
   let mentionResults = [];
   try {
     const mentionRegex = /@([^\s@]+)/g;
@@ -565,7 +565,7 @@ exports.createComment = async (req, res, next) => {
       for (const row of rows) {        
         if (row.id === user.id) continue;
 
-        // 3-1) 멘션 알림 생성
+        // 멘션 알림 생성
         try {
           await notificationService.notifyCommentMention({
             receiverId: row.id,
@@ -577,7 +577,7 @@ exports.createComment = async (req, res, next) => {
           console.error("createForCommentMention error:", notifErr);
         }
 
-        // 3-2) 멘션 관련 통계 / 업적 (멘션 ‘된’ 유저 기준)
+        // 멘션 관련 통계 / 업적 (멘션 ‘된’ 유저 기준)
         try {
           await userStatsModel.updateOnMentioned(row.id);
           const achRes = await achievementService.checkAndUnlockAll(row.id);
@@ -641,6 +641,7 @@ exports.createComment = async (req, res, next) => {
   });
 };
 
+// 피드 상세
 exports.getPostDetail = async (req, res) => {
   try {
     const postId = Number.parseInt(req.params.postId, 10);
@@ -662,6 +663,7 @@ exports.getPostDetail = async (req, res) => {
   }
 };
 
+// 내 피드 목록
 exports.getMyPosts = async (req, res) => {
   try {
     const user = req.user;
@@ -685,6 +687,7 @@ exports.getMyPosts = async (req, res) => {
   }
 };
 
+// 내가 북마크한 피드 목록
 exports.getMyBookmarkedPosts = async (req, res) => {
   try {
     const user = req.user;
@@ -708,6 +711,7 @@ exports.getMyBookmarkedPosts = async (req, res) => {
   }
 };
 
+// 피드 리스트
 exports.listPosts = async (req, res) => {
   const {
     page = 1,
@@ -717,7 +721,6 @@ exports.listPosts = async (req, res) => {
     period = "all",
   } = req.query;
 
-  // 로그인 유저 ID (authMiddleware에서 넣어줬다고 가정)
   const currentUserId = req.user ? req.user.id : null;
 
   try {
@@ -737,10 +740,11 @@ exports.listPosts = async (req, res) => {
   }
 };
 
+// 타겟 유저의 피드 목록
 exports.listUserPosts = async (req, res) => {
   try {
     const { userId } = req.params;
-    const viewerId = req.user.id; // 현재 로그인한 유저 (좋아요/북마크 표시용)
+    const viewerId = req.user.id;
 
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 12;
@@ -752,15 +756,14 @@ exports.listUserPosts = async (req, res) => {
       currentUserId: viewerId,
     });
 
-    res.json(posts); // 프론트에서는 배열 그대로 받음
+    res.json(posts);
   } catch (err) {
     console.error("listUserPosts error:", err);
     res.status(500).json({ error: "유저 게시글 조회 중 오류가 발생했습니다." });
   }
 };
 
-// PUT /api/posts/:postId
-// PUT /api/posts/:postId
+// 피드 수정
 exports.updatePost = async (req, res) => {
   const postId = Number(req.params.postId);
   const userId = req.user.id;
@@ -791,7 +794,7 @@ exports.updatePost = async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    // 1) 작성자 확인
+    // 작성자 확인
     const [rows] = await conn.execute(
       `SELECT user_id FROM posts WHERE id = ?`,
       [postId]
@@ -812,7 +815,7 @@ exports.updatePost = async (req, res) => {
         .json({ message: "수정 권한이 없습니다." });
     }
 
-    // 2) 기본 정보 업데이트 (캡션 / 게임)
+    // 기본 정보 업데이트 (캡션 / 게임)
     await conn.execute(
       `
       UPDATE posts
@@ -822,7 +825,7 @@ exports.updatePost = async (req, res) => {
       [caption, gameIdNum, postId]
     );
 
-    // 3) 미디어 교체 여부 확인
+    // 미디어 교체 여부 확인
     const files = req.files || {};
     const imageFiles = files.images || [];
     const videoFiles = files.videos || [];
@@ -834,13 +837,13 @@ exports.updatePost = async (req, res) => {
       (replaceMedia === "true" || replaceMedia === true);
 
     if (shouldReplace) {
-      // 3-1) 기존 미디어 삭제
+      // 기존 미디어 삭제
       await conn.execute(
         `DELETE FROM post_media WHERE post_id = ?`,
         [postId]
       );
 
-      // 3-2) 새 미디어 저장 (createPost 로직과 동일)
+      // 새 미디어 저장
       let sortOrder = 0;
 
       for (const file of imageFiles) {
@@ -884,7 +887,7 @@ exports.updatePost = async (req, res) => {
   return res.json({ ok: true });
 };
 
-// DELETE /api/posts/:postId
+// 피드 삭제
 exports.deletePost = async (req, res) => {
   try {
     const postId = Number(req.params.postId);

@@ -1,4 +1,3 @@
-// client/src/context/ColorModeContext.jsx
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -14,7 +13,6 @@ const getDesignTokens = (mode) => ({
             default: "#f5f5f5",
             paper: "#ffffff",
           },
-          // 사이드바용 회색
           customSide: "#b0b0b0",
         }
       : {

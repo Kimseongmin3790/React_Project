@@ -1,5 +1,6 @@
 const searchModel = require("../models/searchModel");
 
+// 통합 검색
 exports.search = async (req, res) => {
   const { query = "", type = "all" } = req.query;
   const q = query.trim();

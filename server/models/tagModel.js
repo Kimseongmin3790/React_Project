@@ -1,12 +1,10 @@
-// models/tagModel.js
 const db = require("../db");
 
-// ... 기존 findByName, findOrCreateTags 등 아래쪽에 추가
+// 인기 태그
 exports.findPopularTags = async ({ limit = 20, days = null }) => {
   const params = [];
   let where = "";
 
-  // 기간 필터: 최근 N일 동안 사용된 태그만
   if (days && Number.isFinite(days)) {
     where = "WHERE p.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
     params.push(days);

@@ -1,4 +1,3 @@
-// src/pages/FeedPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Box,
@@ -62,7 +61,6 @@ function getMediaUrl(url) {
   return `${API_ORIGIN}${url}`;
 }
 
-// 알림 payload를 정규화
 function normalizeNotification(raw) {
   if (!raw) return null;
 
@@ -101,7 +99,6 @@ function FeedPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // 게임 필터 UI
   const { gameList } = useGameList();
   const [gameSearch, setGameSearch] = useState("");
 
@@ -119,21 +116,17 @@ function FeedPage() {
 
   const [commentInputs, setCommentInputs] = useState({});
 
-  // 🔔 알림
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [notifications, setNotifications] = useState([]);
 
-  // 팔로우 관계
   const [relations, setRelations] = useState({});
   const [relationLoading, setRelationLoading] = useState({});
 
-  // 상단 검색창
   const [searchText, setSearchText] = useState("");
 
-  // 피드 정렬/기간/게임필터
   const [sort, setSort] = useState("latest");
   const [period, setPeriod] = useState("all");
-  const [gameFilter, setGameFilter] = useState(""); // ""면 전체, 값 있으면 gameId
+  const [gameFilter, setGameFilter] = useState("");
 
   const [postMenuAnchor, setPostMenuAnchor] = useState(null);
   const [postMenuTarget, setPostMenuTarget] = useState(null);
@@ -141,7 +134,7 @@ function FeedPage() {
   const fetchRelation = useCallback(async (targetUserId) => {
     try {
       setRelationLoading((prev) => ({ ...prev, [targetUserId]: true }));
-      const rel = await getUserRelation(targetUserId); // { isMe, isFollowing, isFollower }
+      const rel = await getUserRelation(targetUserId);
 
       setRelations((prev) => ({
         ...prev,
@@ -169,7 +162,6 @@ function FeedPage() {
     const current = relations[targetUserId] || {};
     const prevIsFollowing = !!current.isFollowing;
 
-    // 낙관적 업데이트
     setRelations((prev) => ({
       ...prev,
       [targetUserId]: { ...current, isFollowing: !prevIsFollowing },
@@ -200,7 +192,6 @@ function FeedPage() {
     setDetailPostId(null);
   };
 
-  // 왼쪽 메뉴 클릭
   const handleMenuClick = (key) => {
     setSelectedMenu(key);
 
@@ -239,17 +230,13 @@ function FeedPage() {
     setPostSnackbarOpen(false);
   };
 
-  // ⭐ 랭킹 / 검색 결과 페이지에서 넘어올 때 gameFilter 적용
   useEffect(() => {
     const initialGameId = location.state?.initialGameId;
     if (initialGameId) {
       setGameFilter(String(initialGameId));
-      // 필요하면 검색어도 초기화
-      // setGameSearch("");
     }
   }, [location]);
 
-  // ⭐ 피드 로딩 (중복 useEffect 제거 + 빈 문자열은 아예 전송 안 함)
   useEffect(() => {
     let cancelled = false;
 
@@ -259,7 +246,6 @@ function FeedPage() {
 
       try {
         const params = { sort, period };
-        // gameFilter 가 있을 때만 gameId 쿼리 파라미터로 추가
         if (gameFilter) {
           params.gameId = gameFilter;
           params.game = gameFilter;
@@ -290,7 +276,6 @@ function FeedPage() {
     };
   }, [sort, period, gameFilter, reloadKey]);
 
-  // 🔔 알림 요약 + 소켓 연결
   useEffect(() => {
     if (!user) return;
 
@@ -450,7 +435,6 @@ function FeedPage() {
     }
   };
 
-  // 🔔 헤더에서 알림 메뉴 열릴 때 → 모두 읽음 처리
   const handleNotificationsOpened = async () => {
     if (unreadTotal > 0) {
       try {
@@ -462,7 +446,6 @@ function FeedPage() {
     }
   };
 
-  // 🔔 개별 알림 클릭 시
   const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
       if (n.roomId) {
@@ -472,14 +455,12 @@ function FeedPage() {
       }
       return;
     }
-    // 게시글과 관련된 알림들
     if (
-      n.type === "FOLLOWED_USER_POST" || // 팔로우한 유저 새 글
-      n.type === "FOLLOWED_POST" ||      // 혹시 나중에 따로 쓸 경우
-      n.type === "COMMENT_MENTION"       // 댓글 멘션
+      n.type === "FOLLOWED_USER_POST" ||
+      n.type === "FOLLOWED_POST" ||
+      n.type === "COMMENT_MENTION"
     ) {
       if (n.postId) {
-        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
         navigate("/", { state: { openPostId: n.postId } });
       } else {
         navigate("/");
@@ -490,16 +471,13 @@ function FeedPage() {
     console.log("unknown notification type:", n);
   };
 
-  // 🔔 알림에서 넘어올 때 특정 게시글 디테일 자동 오픈
   useEffect(() => {
     const openPostId = location.state?.openPostId;
     if (!openPostId) return;
 
-    // 바로 디테일 모달 오픈
     setDetailPostId(openPostId);
     setDetailOpen(true);
 
-    // state를 지워서 뒤로가기 등에서 다시 열리지 않게
     navigate(location.pathname, { replace: true });
   }, [location.state, navigate]);
 
@@ -516,7 +494,6 @@ function FeedPage() {
         p.id === updatedPost.id
           ? {
               ...p,
-              // 🔹 본문 / 게임 정보
               caption:
                 typeof updatedPost.caption !== "undefined"
                   ? updatedPost.caption
@@ -534,7 +511,6 @@ function FeedPage() {
                   ? updatedPost.gameSlug
                   : p.gameSlug,
 
-              // 🔹 썸네일 (getPostById에서 내려줄 경우)
               thumbUrl:
                 typeof updatedPost.thumbUrl !== "undefined"
                   ? updatedPost.thumbUrl
@@ -544,7 +520,6 @@ function FeedPage() {
                   ? updatedPost.thumbType
                   : p.thumbType,
 
-              // 🔹 좋아요/북마크/댓글
               isLiked:
                 typeof updatedPost.isLiked !== "undefined"
                   ? updatedPost.isLiked
@@ -597,13 +572,11 @@ function FeedPage() {
   };
 
   const handlePostEditSaved = (updatedPost) => {
-    // 다이얼로그 닫기
     setEditOpen(false);
     setEditingPost(null);
 
     if (!updatedPost) return;
 
-    // 현재 피드에 반영 (캡션/게임 정보 업데이트)
     setPosts((prev) =>
       prev.map((p) =>
         p.id === updatedPost.id
@@ -740,11 +713,9 @@ function FeedPage() {
                 options={gameList}
                 getOptionLabel={(option) => option.name || ""}
                 noOptionsText="게임이 없습니다"
-                // 선택된 값
                 value={
                   gameList.find((g) => String(g.id) === String(gameFilter)) || null
                 }
-                // 항목 선택 시
                 onChange={(e, newValue) => {
                   if (newValue) {
                     setGameFilter(String(newValue.id));
@@ -754,7 +725,6 @@ function FeedPage() {
                     setGameSearch("");
                   }
                 }}
-                // 입력값 (한 글자씩 타이핑할 때)
                 inputValue={gameSearch}
                 onInputChange={(e, value, reason) => {
                   setGameSearch(value);

@@ -6,7 +6,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [initialized, setInitialized] = useState(false); // 앱 시작 시 체크 끝났는지
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
           return;
         }
         // 토큰 있으면 서버에 확인
-        const res = await getMe(); // { user: {...} }
+        const res = await getMe();
         setUser(res.user);
       } catch (err) {
         const status = err.response?.status;
@@ -65,7 +65,7 @@ export function useAuth() {
   return ctx;
 }
 
-// ✅ 보호 라우트용 컴포넌트
+// 보호 라우트용 컴포넌트
 export function RequireAuth({ children }) {
   const { user, initialized } = useAuth();
   const location = useLocation();

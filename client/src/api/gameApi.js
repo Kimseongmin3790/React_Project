@@ -13,6 +13,7 @@ api.interceptors.request.use((config)=>{
     return config;
 })
 
+// 게임 랭킹 목록 가져오기
 export async function fetchGameRanking(rangeDays = 7) {
   const params = {};
   if (rangeDays) {

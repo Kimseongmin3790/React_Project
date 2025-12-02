@@ -24,7 +24,7 @@ const { setIo } = require('./socket/socketManager');
 const app = express();
 
 app.use(cors({
-  origin: '*',   // 개발 중이면 이렇게, 나중엔 프론트 주소로 바꾸는 게 안전
+  origin: '*',
   credentials: true
 }));
 app.use(express.json());
@@ -58,7 +58,6 @@ setIo(io);
 
 initChatSocket(io);
 
-// ✅ 이제는 app.listen이 아니라 server.listen 사용
 server.listen(3020, () => {
   console.log('server start! on 3020');
 });

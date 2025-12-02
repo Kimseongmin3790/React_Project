@@ -1,13 +1,14 @@
 const db = require("../db");
 const tagModel = require("../models/tagModel");
 
+// 해당 태그를 가진 피드 조회
 exports.getPostsByTag = async (req, res) => {
   const rawTag = req.params.tagName || "";
   const tagName = rawTag.toLowerCase();
 
   const {
-    sort = "latest",   // latest | popular
-    period = "all",    // all | 7d | 30d
+    sort = "latest",
+    period = "all",
     limit = 20,
     offset = 0,
   } = req.query;
@@ -72,7 +73,7 @@ exports.getPopularTags = async (req, res) => {
 
     const tags = await tagModel.findPopularTags({ limit, days });
 
-    res.json(tags); // [{ id, name, postCount }, ...]
+    res.json(tags);
   } catch (err) {
     console.error("getPopularTags error:", err);
     res

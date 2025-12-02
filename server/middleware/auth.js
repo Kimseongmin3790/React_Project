@@ -1,4 +1,3 @@
-// middleware/auth.js
 const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
 
@@ -19,7 +18,6 @@ module.exports = async function auth(req, res, next) {
       return res.status(401).json({ message: '유효하지 않은 사용자입니다.' });
     }
 
-    // 컨트롤러에서 쓸 수 있도록 최소 정보만 넣어두기
     req.user = {
       id: user.id,
       email: user.email,

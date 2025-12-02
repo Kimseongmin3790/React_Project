@@ -1,4 +1,3 @@
-// models/achievementModel.js
 const db = require("../db");
 
 // 전체 업적 목록
@@ -25,7 +24,7 @@ exports.getUserAchievements = async (userId) => {
   return rows;
 };
 
-// 유저가 가진 업적 id 리스트만
+// 유저가 가진 업적 아이디
 exports.getUserAchievementIds = async (userId) => {
   const [rows] = await db.query(
     `SELECT achievement_id
@@ -36,7 +35,7 @@ exports.getUserAchievementIds = async (userId) => {
   return rows.map((r) => r.achievement_id);
 };
 
-// 업적 획득 (중복 방지를 위해 UNIQUE(user_id, achievement_id) + INSERT IGNORE 추천)
+// 업적 획득
 exports.insertUserAchievement = async (userId, achievementId) => {
   await db.query(
     `INSERT IGNORE INTO user_achievements (user_id, achievement_id, achieved_at)

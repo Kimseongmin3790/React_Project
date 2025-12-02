@@ -25,7 +25,6 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔐 비밀번호 찾기용 state
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotResult, setForgotResult] = useState("");
@@ -42,7 +41,7 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await loginApi({ email, password }); // { message, token, user }
+      const data = await loginApi({ email, password });
       login(data.token, data.user);
       navigate("/");
     } catch (err) {
@@ -59,9 +58,9 @@ function LoginPage() {
     navigate("/register");
   };
 
-  // 🔽 비밀번호 찾기 열기
+  // 비밀번호 찾기 열기
   const handleOpenForgot = () => {
-    setForgotEmail(email); // 로그인 폼에 입력한 이메일 기본값으로
+    setForgotEmail(email);
     setForgotResult("");
     setForgotOpen(true);
   };
@@ -70,7 +69,7 @@ function LoginPage() {
     setForgotOpen(false);
   };
 
-  // 🔽 비밀번호 찾기 제출 (임시 비밀번호 발급)
+  // 비밀번호 찾기 제출 (임시 비밀번호 발급)
   const handleSubmitForgot = async () => {
     if (!forgotEmail.trim()) {
       setForgotResult("이메일을 입력해주세요.");
@@ -81,7 +80,7 @@ function LoginPage() {
     setForgotResult("");
 
     try {      
-      const res = await resetPassword(forgotEmail); // { ok, message, tempPassword }
+      const res = await resetPassword(forgotEmail);
       if (res.ok) {
         setForgotResult(
           `임시 비밀번호: ${res.tempPassword}\n로그인 후 마이페이지에서 비밀번호를 변경해주세요.`
@@ -128,7 +127,7 @@ function LoginPage() {
           align="center"
           sx={{ fontWeight: "bold", mb: 3 }}
         >
-          Gamegram 로그인
+          GClip 로그인
         </Typography>
 
         <form onSubmit={handleSubmit}>
@@ -167,7 +166,7 @@ function LoginPage() {
               {loading ? "로그인 중..." : "로그인"}
             </Button>
 
-            {/* 🔽 비밀번호 찾기 버튼 */}
+            {/* 비밀번호 찾기 버튼 */}
             <Button
               variant="text"
               size="small"
@@ -189,7 +188,7 @@ function LoginPage() {
         </Box>
       </Paper>
 
-      {/* 🔐 비밀번호 찾기 Dialog */}
+      {/* 비밀번호 찾기 Dialog */}
       <Dialog open={forgotOpen} onClose={handleCloseForgot} fullWidth maxWidth="xs">
         <DialogTitle>비밀번호 찾기</DialogTitle>
         <DialogContent dividers>

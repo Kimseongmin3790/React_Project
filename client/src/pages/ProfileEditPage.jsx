@@ -1,4 +1,3 @@
-// src/pages/ProfileEditPage.jsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -31,7 +30,6 @@ import {
 const API_BASE_URL = "http://localhost:3020";
 const API_ORIGIN = "http://localhost:3020";
 
-// 🔔 MyPage / FeedPage에서 쓰던 알림 정규화 함수
 function normalizeNotification(raw) {
   if (!raw) return null;
 
@@ -64,38 +62,30 @@ function ProfileEditPage() {
   const navigate = useNavigate();
   const { user, setUser, logout } = useAuth();
 
-  // 🔹 사이드바 선택 메뉴 (MyPage랑 맞춰서 "profile")
   const [selectedMenu, setSelectedMenu] = useState("profile");
 
-  // 🔹 글쓰기 모달
   const [createOpen, setCreateOpen] = useState(false);
 
-  // 🔔 알림 관련 상태 (MyPage / FeedPage와 동일 패턴)
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [notifications, setNotifications] = useState([]);
 
-  // 상단 검색창 (MyPage랑 동일하게 props 맞추기용)
   const [searchText, setSearchText] = useState("");
 
-  // 프로필 수정 관련 상태
   const [nickname, setNickname] = useState("");
   const [bio, setBio] = useState("");
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // 🔐 진입 시 비밀번호 확인
   const [verified, setVerified] = useState(false);
   const [passwordCheck, setPasswordCheck] = useState("");
   const [passwordCheckError, setPasswordCheckError] = useState("");
   const [checking, setChecking] = useState(false);
 
-  // 🔐 비밀번호 변경
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
   const [newPasswordError, setNewPasswordError] = useState("");
 
-  // 최초 진입 시 현재 user로 폼 초기화
   useEffect(() => {
     if (user) {
       setNickname(user.nickname || "");
@@ -117,7 +107,6 @@ function ProfileEditPage() {
     setAvatarPreview(URL.createObjectURL(file));
   };
 
-  // 🔐 현재 비밀번호 확인
   const handleVerifyPassword = async () => {
     setPasswordCheckError("");
     if (!passwordCheck) {
@@ -160,15 +149,12 @@ function ProfileEditPage() {
     }
 
     try {
-      // 기본 프로필 정보 업데이트
       let updatedUser = await updateProfile(payload);
 
-      // 아바타가 있으면 업로드 후 다시 updatedUser로 교체
       if (avatarFile) {
         updatedUser = await uploadAvatar(avatarFile);
       }
 
-      // 🔥 AuthContext user 갱신 (bio 포함)
       setUser(updatedUser);
 
       alert("프로필이 저장되었습니다.");
@@ -181,7 +167,6 @@ function ProfileEditPage() {
     }
   };
 
-  // 🔹 SideNav 메뉴 클릭 (MyPage와 동일 패턴)
   const handleMenuClick = (key) => {
     setSelectedMenu(key);
 
@@ -190,7 +175,7 @@ function ProfileEditPage() {
     } else if (key === "explore") {
       navigate("/explore");
     } else if (key === "write") {
-      setCreateOpen(true); // 글쓰기 모달 열기
+      setCreateOpen(true);
     } else if (key === "profile") {
       navigate("/me");
     } else if (key === "chat") {
@@ -203,7 +188,6 @@ function ProfileEditPage() {
     }
   };
 
-  // 🔔 알림 요약 + 소켓 연결 (MyPage / FeedPage와 동일 로직)
   useEffect(() => {
     if (!user) return;
 
@@ -259,7 +243,6 @@ function ProfileEditPage() {
     };
   }, [user]);
 
-  // 🔔 헤더에서 알림 메뉴 열릴 때 → 모두 읽음 처리
   const handleNotificationsOpened = async () => {
     if (unreadTotal > 0) {
       try {
@@ -271,7 +254,6 @@ function ProfileEditPage() {
     }
   };
 
-  // 🔔 알림 하나 클릭 시 동작
   const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
       if (n.roomId) {
@@ -281,14 +263,12 @@ function ProfileEditPage() {
       }
       return;
     }
-    // 게시글과 관련된 알림들
     if (
-      n.type === "FOLLOWED_USER_POST" || // 팔로우한 유저 새 글
-      n.type === "FOLLOWED_POST" ||      // 혹시 나중에 따로 쓸 경우
-      n.type === "COMMENT_MENTION"       // 댓글 멘션
+      n.type === "FOLLOWED_USER_POST" ||
+      n.type === "FOLLOWED_POST" || 
+      n.type === "COMMENT_MENTION"  
     ) {
       if (n.postId) {
-        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
         navigate("/", { state: { openPostId: n.postId } });
       } else {
         navigate("/");
@@ -299,10 +279,7 @@ function ProfileEditPage() {
     console.log("unknown notification type:", n);
   };
 
-  // 글쓰기 모달에서 글 작성 완료 시
   const handlePostCreated = () => {
-    // 단순히 모달만 닫아도 되고,
-    // 필요하면 navigate("/") or navigate("/me")도 가능
     setCreateOpen(false);
   };
 
@@ -495,7 +472,7 @@ function ProfileEditPage() {
           </Container>
         </Box>
 
-        {/* 글쓰기 모달 (SideNav에서 글쓰기 눌렀을 때 공통 동작) */}
+        {/* 글쓰기 모달 */}
         <CreatePostDialog
           open={createOpen}
           onClose={() => setCreateOpen(false)}

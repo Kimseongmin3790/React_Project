@@ -1,6 +1,6 @@
 const db = require("../db");
 
-// LIKE 검색 (간단 버전)
+// 유저 검색
 exports.searchUsers = async (q) => {
   const like = `%${q}%`;
   const [rows] = await db.query(
@@ -10,6 +10,7 @@ exports.searchUsers = async (q) => {
   return rows;
 };
 
+// 피드 검색
 exports.searchPosts = async (q) => {
   const like = `%${q}%`;
   const [rows] = await db.query(
@@ -25,6 +26,7 @@ exports.searchPosts = async (q) => {
   return rows;
 };
 
+// 태그 검색
 exports.searchTags = async (q) => {
   const like = `%${q}%`;
   const [rows] = await db.query(
@@ -34,6 +36,7 @@ exports.searchTags = async (q) => {
   return rows;
 };
 
+// 게임 검색
 exports.searchGames = async (q) => {
   const like = `%${q}%`;
   const [rows] = await db.query(

@@ -1,5 +1,6 @@
 const db = require('../db');
 
+// 메일주소로 유저 찾기
 async function findByEmail(email) {
     try {
         const sql = "SELECT * FROM USERS WHERE EMAIL = ?";
@@ -11,6 +12,7 @@ async function findByEmail(email) {
     }
 }
 
+// username으로 유저 찾기
 async function findByUsername(username) {
   const [rows] = await db.execute(
     'SELECT * FROM users WHERE username = ?',
@@ -19,6 +21,7 @@ async function findByUsername(username) {
   return rows[0] || null;
 }
 
+// id로 유저 찾기
 async function findById(id) {
   const [rows] = await db.execute(
     'SELECT * FROM users WHERE id = ?',
@@ -27,6 +30,7 @@ async function findById(id) {
   return rows[0] || null;
 }
 
+// 회원가입
 async function createUser({ email, passwordHash, username, nickname }) {
   const [result] = await db.execute(
     `INSERT INTO users (email, password_hash, username, nickname)
@@ -36,7 +40,7 @@ async function createUser({ email, passwordHash, username, nickname }) {
   return result.insertId;
 }
 
-// 🔹 나를 팔로우하는 사람들 (followers)
+// 나를 팔로우하는 사람들 (followers)
 async function getFollowers(userId) {
   const sql = `
     SELECT 
@@ -53,7 +57,7 @@ async function getFollowers(userId) {
   return rows;
 }
 
-// 🔹 내가 팔로우하는 사람들 (following)
+// 내가 팔로우하는 사람들 (following)
 async function getFollowing(userId) {
   const sql = `
     SELECT 
@@ -70,6 +74,7 @@ async function getFollowing(userId) {
   return rows;
 }
 
+// id로 유저 정보 조회
 async function getUserById(userId) {
   const sql = `
     SELECT

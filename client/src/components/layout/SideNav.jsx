@@ -1,4 +1,3 @@
-// src/components/layout/SideNav.jsx
 import React, { useState } from "react";
 import {
   Box,
@@ -70,7 +69,6 @@ function SideNav({ selectedMenu, onMenuClick }) {
         zIndex: 10,
       }}
     >
-      {/* 로고 영역은 생략, 기존 코드 그대로 */}
       <Box
         sx={{
           px: { xs: 1, md: 2 },
@@ -132,7 +130,7 @@ function SideNav({ selectedMenu, onMenuClick }) {
             <WhatshotIcon />
           </ListItemIcon>
           <ListItemText
-            primary="인기 TOP 10 게임"
+            primary="인기 게임"
             sx={{ display: { xs: "none", md: "block" } }}
           />
         </ListItemButton>
@@ -145,7 +143,7 @@ function SideNav({ selectedMenu, onMenuClick }) {
           <ListItemIcon sx={{ color: "inherit" }}>
             <ChatIcon />
           </ListItemIcon>
-          <ListItemText primary="실시간 채팅" sx={{ display: { xs: "none", md: "block" } }} />
+          <ListItemText primary="메시지" sx={{ display: { xs: "none", md: "block" } }} />
         </ListItemButton>
 
         <ListItemButton
@@ -156,7 +154,7 @@ function SideNav({ selectedMenu, onMenuClick }) {
           <ListItemIcon sx={{ color: "inherit" }}>
             <AddBoxIcon />
           </ListItemIcon>
-          <ListItemText primary="글 쓰기" sx={{ display: { xs: "none", md: "block" } }} />
+          <ListItemText primary="피드 추가" sx={{ display: { xs: "none", md: "block" } }} />
         </ListItemButton>
 
         <ListItemButton
@@ -167,10 +165,10 @@ function SideNav({ selectedMenu, onMenuClick }) {
           <ListItemIcon sx={{ color: "inherit" }}>
             <PersonIcon />
           </ListItemIcon>
-          <ListItemText primary="프로필" sx={{ display: { xs: "none", md: "block" } }} />
+          <ListItemText primary="내 정보" sx={{ display: { xs: "none", md: "block" } }} />
         </ListItemButton>
 
-        {/* 🔥 더보기 */}
+        {/* 더보기 */}
         <ListItemButton
           selected={selectedMenu === "more"}
           onClick={handleOpenMore}
@@ -199,7 +197,7 @@ function SideNav({ selectedMenu, onMenuClick }) {
         transformOrigin={{ vertical: "top", horizontal: "left" }}
         PaperProps={{
           sx: {
-            ml: 1, // 사이드바 오른쪽에 붙게
+            ml: 1,
           },
         }}
       >
@@ -217,7 +215,7 @@ function SideNav({ selectedMenu, onMenuClick }) {
 
         <MenuItem
           onClick={() => {
-            navigate("/me/edit"); // 계정 설정 페이지
+            navigate("/me/edit");
             handleCloseMore();
           }}
         >

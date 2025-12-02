@@ -1,4 +1,3 @@
-// src/pages/MyPage.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Box,
@@ -107,14 +106,12 @@ function MyPage() {
   const navigate = useNavigate();
   const { gameList } = useGameList();
 
-  // 왼쪽 메뉴 선택
   const [selectedMenu, setSelectedMenu] = useState("profile");
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
-  // 탭: 작성한 글 / 좋아요 / 북마크
-  const [tab, setTab] = useState("posts"); // posts | likes | bookmarks
+  const [tab, setTab] = useState("posts");
 
   const [myPosts, setMyPosts] = useState([]);
   const [likedPosts, setLikedPosts] = useState([]);
@@ -141,11 +138,9 @@ function MyPage() {
   const [followings, setFollowings] = useState([]);
   const [followListLoading, setFollowListLoading] = useState(false);
 
-  // 🔔 알림
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [notifications, setNotifications] = useState([]);
 
-  // 검색창
   const [searchText, setSearchText] = useState("");
 
   const [postMenuAnchor, setPostMenuAnchor] = useState(null);
@@ -177,7 +172,6 @@ function MyPage() {
     }
   }, [user, reloadKey]);
 
-  // 🔔 알림 요약 + 소켓
   useEffect(() => {
     if (!user) return;
 
@@ -274,7 +268,6 @@ function MyPage() {
   const currentPosts =
     tab === "posts" ? myPosts : tab === "likes" ? likedPosts : bookmarkedPosts;
 
-  // 좋아요 토글 → API 호출 후 내 데이터 다시 로딩
   const handleToggleLike = async (postId, currentIsLiked) => {
     try {
       if (currentIsLiked) {
@@ -288,7 +281,6 @@ function MyPage() {
     }
   };
 
-  // 북마크 토글 → API 호출 후 내 데이터 다시 로딩
   const handleToggleBookmark = async (postId, currentIsBookmarked) => {
     try {
       if (currentIsBookmarked) {
@@ -372,7 +364,6 @@ function MyPage() {
     }
   };
 
-  // 🔔 헤더에서 알림 버튼 눌러 메뉴 열릴 때 호출 → 모두 읽음 처리
   const handleNotificationsOpened = async () => {
     if (unreadTotal > 0) {
       try {
@@ -384,7 +375,6 @@ function MyPage() {
     }
   };
 
-  // 🔔 알림 하나 클릭 시 동작
   const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
       if (n.roomId) {
@@ -394,14 +384,12 @@ function MyPage() {
       }
       return;
     }
-    // 게시글과 관련된 알림들
     if (
-      n.type === "FOLLOWED_USER_POST" || // 팔로우한 유저 새 글
-      n.type === "FOLLOWED_POST" ||      // 혹시 나중에 따로 쓸 경우
-      n.type === "COMMENT_MENTION"       // 댓글 멘션
+      n.type === "FOLLOWED_USER_POST" ||
+      n.type === "FOLLOWED_POST" || 
+      n.type === "COMMENT_MENTION" 
     ) {
       if (n.postId) {
-        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
         navigate("/", { state: { openPostId: n.postId } });
       } else {
         navigate("/");
@@ -460,7 +448,7 @@ function MyPage() {
     if (!window.confirm("이 게시글을 삭제하시겠습니까?")) return;
     try {
       await deletePost(postId);
-      await loadMyData(); // ✅ /me 다시 로딩
+      await loadMyData();
     } catch (err) {
       console.error("마이페이지 삭제 실패:", err);
       alert("게시글 삭제 중 오류가 발생했습니다.");
@@ -476,13 +464,11 @@ function MyPage() {
   };
 
   const handlePostEditSaved = (updatedPost) => {
-    // 다이얼로그 닫기
     setEditOpen(false);
     setEditingPost(null);
 
     if (!updatedPost) return;
 
-    // 현재 피드에 반영 (캡션/게임 정보 업데이트)
     setMyPosts((prev) =>
       prev.map((p) =>
         p.id === updatedPost.id
@@ -507,7 +493,7 @@ function MyPage() {
 
       {/* ┌──────────────── 오른쪽 메인 영역 ────────────────┐ */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        {/* ✅ 공통 상단 헤더 사용 */}
+        {/* 상단 헤더 */}
         <MainHeader
           user={user}
           unreadTotal={unreadTotal}
@@ -927,7 +913,7 @@ function MyPage() {
             onCreated={handlePostCreated}
           />
 
-          {/* 🔥 팔로워 목록 모달 */}
+          {/* 팔로워 목록 모달 */}
           <Dialog
             open={followerDialogOpen}
             onClose={() => setFollowerDialogOpen(false)}
@@ -968,7 +954,7 @@ function MyPage() {
             </DialogContent>
           </Dialog>
 
-          {/* 🔥 팔로우(팔로잉) 목록 모달 */}
+          {/* 팔로우(팔로잉) 목록 모달 */}
           <Dialog
             open={followingDialogOpen}
             onClose={() => setFollowingDialogOpen(false)}

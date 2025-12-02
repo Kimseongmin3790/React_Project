@@ -1,4 +1,3 @@
-// src/components/post/EditPostDialog.jsx
 import React, { useEffect, useState } from "react";
 import {
   Dialog,
@@ -80,7 +79,6 @@ function EditPostDialog({ open, post, gameList = [], onClose, onSaved }) {
         replaceMedia: hasNewMedia,
       });
 
-      // 프론트에서 즉시 반영할 업데이트 데이터 구성
       const updatedGame =
         gameList.find((g) => String(g.id) === String(selectedGameId)) || null;
 
@@ -129,7 +127,7 @@ function EditPostDialog({ open, post, gameList = [], onClose, onSaved }) {
           pr: 2,
         }}
       >
-        게시글 수정
+        피드 수정
         <IconButton
           size="small"
           onClick={onClose}
@@ -189,7 +187,7 @@ function EditPostDialog({ open, post, gameList = [], onClose, onSaved }) {
                 fullWidth
               />
 
-              {/* 🔥 미디어 교체 영역 */}
+              {/* 미디어 교체 영역 */}
               <Box>
                 <Typography variant="body2" sx={{ mb: 0.5 }}>
                   이미지 / 영상 교체 (선택)

@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import FeedPage from "./pages/FeedPage";
-import CreatePostPage from "./pages/CreatePostPage";
 import PostDetailPage from "./pages/PostDetailPage";
 import ChatPage from "./pages/ChatPage";
 import ProfileEditPage from "./pages/ProfileEditPage";
@@ -26,13 +25,6 @@ function App() {
           <Route path="/" element={
             <RequireAuth>
               <FeedPage />
-            </RequireAuth>
-          }
-          />
-
-          <Route path="/create" element={
-            <RequireAuth>
-              <CreatePostPage />
             </RequireAuth>
           }
           />

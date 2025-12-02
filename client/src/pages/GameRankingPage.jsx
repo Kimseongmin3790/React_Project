@@ -1,4 +1,3 @@
-// src/pages/GameRankingPage.jsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -61,7 +60,7 @@ function GameRankingPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const [range, setRange] = useState("7"); // "7" | "30" | "all"
+  const [range, setRange] = useState("7");
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -71,7 +70,6 @@ function GameRankingPage() {
 
   const [searchText, setSearchText] = useState("");
 
-  // 랭킹 불러오기 + score 계산 + 정렬 + TOP 10 자르기
   const loadRanking = async (rangeValue) => {
     try {
       setLoading(true);
@@ -80,12 +78,10 @@ function GameRankingPage() {
       let rangeDays;
       if (rangeValue === "7") rangeDays = 7;
       else if (rangeValue === "30") rangeDays = 30;
-      else rangeDays = undefined; // 전체 기간
+      else rangeDays = undefined;
 
-      // 1) API 호출
       const raw = await fetchGameRanking(rangeDays);
 
-      // 2) 응답 형태 방어 코드 (배열 or { ranking: [...] } or { games: [...] })
       let list = [];
       if (Array.isArray(raw)) {
         list = raw;
@@ -97,16 +93,13 @@ function GameRankingPage() {
         list = [];
       }
 
-      // 3) 필드 normalize + score 계산
       const withScore = list.map((g) => {
         const postCount = g.postCount ?? g.post_count ?? 0;
         const totalLikes = g.totalLikes ?? g.total_likes ?? 0;
         const totalComments = g.totalComments ?? g.total_comments ?? 0;
 
-        // 서버에서 score / rankScore / hotScore 같은 걸 주면 그거 우선 사용
         const apiScore = g.score ?? g.rankScore ?? g.hotScore ?? null;
 
-        // 없으면 프론트에서 계산 (가중치는 필요에 따라 조절해도 됨)
         const fallbackScore =
           postCount * 1 + totalLikes * 2 + totalComments * 1;
 
@@ -115,7 +108,6 @@ function GameRankingPage() {
 
         return {
           ...g,
-          // 이름 필드 정리
           name: g.name || g.gameName || g.title || "이름 없는 게임",
           postCount,
           totalLikes,
@@ -124,10 +116,8 @@ function GameRankingPage() {
         };
       });
 
-      // 4) score 기준 내림차순 정렬
       withScore.sort((a, b) => (b.score || 0) - (a.score || 0));
 
-      // 5) TOP 10만 사용
       setGames(withScore.slice(0, 10));
     } catch (err) {
       console.error("게임 랭킹 로딩 실패:", err);
@@ -215,7 +205,6 @@ function GameRankingPage() {
     } else if (key === "profile") {
       navigate("/me");
     } else if (key === "more") {
-      // 추후 기능 추가
     } else if (key === "logout") {
       logout();
       window.location.href = "/login";
@@ -223,11 +212,9 @@ function GameRankingPage() {
   };
 
   const handleGoGameFeed = (gameId) => {
-    // 메인 피드에서 이 게임만 보이도록 state로 넘김
     navigate("/", { state: { initialGameId: gameId } });
   };
 
-  // 🔔 헤더에서 알림 메뉴 열릴 때 → 모두 읽음 처리
   const handleNotificationsOpened = async () => {
     if (unreadTotal > 0) {
       try {
@@ -239,7 +226,6 @@ function GameRankingPage() {
     }
   };
 
-  // 🔔 개별 알림 클릭 시 동작
   const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
       if (n.roomId) {
@@ -249,14 +235,12 @@ function GameRankingPage() {
       }
       return;
     }
-    // 게시글과 관련된 알림들
     if (
-      n.type === "FOLLOWED_USER_POST" || // 팔로우한 유저 새 글
-      n.type === "FOLLOWED_POST" ||      // 혹시 나중에 따로 쓸 경우
-      n.type === "COMMENT_MENTION"       // 댓글 멘션
+      n.type === "FOLLOWED_USER_POST" || 
+      n.type === "FOLLOWED_POST" ||      
+      n.type === "COMMENT_MENTION" 
     ) {
       if (n.postId) {
-        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
         navigate("/", { state: { openPostId: n.postId } });
       } else {
         navigate("/");
@@ -267,7 +251,6 @@ function GameRankingPage() {
     console.log("unknown notification type:", n);
   };
 
-  // 막대 퍼센트 계산용 최대 score (0이면 1로 보정)
   const maxScore =
     games.reduce((max, g) => {
       const s = g.score || 0;
@@ -295,12 +278,12 @@ function GameRankingPage() {
         color: theme.palette.text.primary,
       }}
     >
-      {/* 왼쪽 사이드바 (다크모드는 SideNav 안에서 처리됨) */}
+      {/* 왼쪽 사이드바 */}
       <SideNav selectedMenu={selectedMenu} onMenuClick={handleMenuClick} />
 
       {/* 오른쪽 메인 영역 */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        {/* 상단 공통 헤더 (이미 다크모드 대응) */}
+        {/* 상단 공통 헤더 */}
         <MainHeader
           user={user}
           unreadTotal={unreadTotal}
@@ -412,7 +395,7 @@ function GameRankingPage() {
                     {rank}
                   </Box>
 
-                  {/* 🔥 게임 썸네일 */}
+                  {/* 게임 썸네일 */}
                   <Box
                     sx={{
                       width: 56,

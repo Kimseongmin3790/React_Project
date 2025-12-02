@@ -1,4 +1,3 @@
-// src/pages/AchievementsPage.jsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -165,12 +164,10 @@ function AchievementsPage() {
     } else if (key === "chat") {
       navigate("/chat");
     } else if (key === "write") {
-      // AchievementsPage에서는 그냥 메인으로 보내도 됨
       navigate("/");
     } else if (key === "profile") {
       navigate("/me");
     } else if (key === "more") {
-      // 이미 더보기 영역이므로 그냥 유지
     }
   };
 
@@ -182,7 +179,6 @@ function AchievementsPage() {
     );
   }
 
-  // 🔔 헤더에서 알림 버튼 눌러 메뉴 열릴 때 호출 → 모두 읽음 처리
   const handleNotificationsOpened = async () => {
     if (unreadTotal > 0) {
      try {
@@ -194,7 +190,6 @@ function AchievementsPage() {
     }
   };
 
-  // 🔔 개별 알림 클릭 시
   const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
       if (n.roomId) {
@@ -204,14 +199,12 @@ function AchievementsPage() {
       }
       return;
     }
-    // 게시글과 관련된 알림들
     if (
-      n.type === "FOLLOWED_USER_POST" || // 팔로우한 유저 새 글
-      n.type === "FOLLOWED_POST" ||      // 혹시 나중에 따로 쓸 경우
-      n.type === "COMMENT_MENTION"       // 댓글 멘션
+      n.type === "FOLLOWED_USER_POST" ||
+      n.type === "FOLLOWED_POST" || 
+      n.type === "COMMENT_MENTION"
     ) {
       if (n.postId) {
-        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
         navigate("/", { state: { openPostId: n.postId } });
       } else {
         navigate("/");

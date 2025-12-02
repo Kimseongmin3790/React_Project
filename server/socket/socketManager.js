@@ -1,4 +1,3 @@
-// server/socket/socketManager.js
 let ioInstance = null;
 
 function setIo(io) {

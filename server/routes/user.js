@@ -29,7 +29,7 @@ const avatarUpload = multer({
   },
 });
 
-// GET /api/users/search?q=검색어
+// 유저 검색
 router.get("/search", authMiddleware, async (req, res) => {
   const q = (req.query.q || "").trim();
   if (!q) {
@@ -133,7 +133,6 @@ router.post("/me/avatar", authMiddleware, avatarUpload.single("avatar"), async (
     }
 
     try {
-      // DB에는 상대 경로만 저장 (예: /uploads/avatar/파일명)
       const relativePath = `/uploads/avatar/${req.file.filename}`;
 
       await db.query(
@@ -419,7 +418,6 @@ router.post("/verify-password", authMiddleware, async (req, res) => {
     const isMatch = await bcrypt.compare(password, hash);
 
     if (!isMatch) {
-      // 200 + ok:false 로 내려서 프론트에서 메시지만 보여주게
       return res.json({
         ok: false,
         message: "비밀번호가 일치하지 않습니다.",

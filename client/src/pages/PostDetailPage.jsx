@@ -160,7 +160,6 @@ function PostDetailPage({ onPostUpdated }) {
       setComments((prev) => [...prev, newComment]);
       setCommentInput("");
 
-      // commentCount 증가
       setPost((prev) =>
         prev
           ? {

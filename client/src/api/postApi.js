@@ -5,7 +5,6 @@ const api = axios.create({
   withCredentials: false,
 });
 
-// 토큰 자동 첨부
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -14,7 +13,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// 📝 게시글 작성
+// 피드 작성
 export async function createPost({ gameId, caption, images = [], videos = [] }) {
   const formData = new FormData();
   formData.append("gameId", gameId);
@@ -33,11 +32,10 @@ export async function createPost({ gameId, caption, images = [], videos = [] }) 
       "Content-Type": "multipart/form-data",
     },
   });
-  // { message, post, userStats?, unlockedAchievements? ... }
   return res.data;
 }
 
-// 📰 피드 가져오기 (나중에 FeedPage에서 axios 대신 이거 써도 됨)
+// 피드 목록 가져오기
 export async function fetchFeed({
   page = 1,
   limit = 10,
@@ -48,7 +46,6 @@ export async function fetchFeed({
   const res = await api.get("/posts", {
     params: { page, limit, sort, period, gameId },
   });
-  // 서버에서 배열로 내려주니까 그대로 반환
   return Array.isArray(res.data) ? res.data : [];
 }
 
@@ -59,31 +56,37 @@ export async function fetchGameList() {
     return res.data.games || [];
 }
 
+// 피드 좋아요
 export async function likePost(postId) {
   const res = await api.post(`/posts/${postId}/like`);
-  return res.data; // { liked: true, likeCount }
+  return res.data;
 }
 
+// 피드 좋아요 해제
 export async function unlikePost(postId) {
   const res = await api.delete(`/posts/${postId}/like`);
-  return res.data; // { liked: false, likeCount }
+  return res.data;
 }
 
+// 피드 북마크
 export async function bookmarkPost(postId) {
   const res = await api.post(`/posts/${postId}/bookmark`);
-  return res.data; // { bookmarked: true }
+  return res.data;
 }
 
+// 피드 북마크 해제
 export async function unbookmarkPost(postId) {
   const res = await api.delete(`/posts/${postId}/bookmark`);
-  return res.data; // { bookmarked: false }
+  return res.data;
 }
 
+// 댓글 목록 가져오기
 export async function fetchComments(postId) {
   const res = await api.get(`/posts/${postId}/comments`);
   return res.data.comments || [];
 }
 
+// 댓글 작성
 export async function createComment(postId, content, parentCommentId = null) {
   const body = { content };
   if (parentCommentId) {
@@ -91,24 +94,16 @@ export async function createComment(postId, content, parentCommentId = null) {
   }
   
   const res = await api.post(`/posts/${postId}/comments`, body);
-  return res.data; // 새로 생성된 댓글 객체
+  return res.data;
 }
 
+// 타겟 피드 가져오기
 export async function fetchPost(postId) {
   const res = await api.get(`/posts/${postId}`);
-  return res.data.post; // { id, gameName, media: [...], ... }
+  return res.data.post;
 }
 
-export async function fetchMyPosts({ page = 1, limit = 10 } = {}) {
-  const res = await api.get("/posts/my", { params: { page, limit } });
-  return res.data; // { page, limit, posts }
-}
-
-export async function fetchMyBookmarkedPosts({ page = 1, limit = 10 } = {}) {
-  const res = await api.get("/posts/bookmarks", { params: { page, limit } });
-  return res.data; // { page, limit, posts }
-}
-
+// 피드 수정
 export async function updatePost(postId, { caption, gameId, images = [], videos = [], replaceMedia = false }) {
   const hasMedia =
     (images && images.length > 0) ||
@@ -143,28 +138,32 @@ export async function updatePost(postId, { caption, gameId, images = [], videos 
   }
 }
 
+// 피드 삭제
 export async function deletePost(postId) {
   const res = await api.delete(`/posts/${postId}`);
   return res.data;
 }
 
-
+// 댓글 좋아요
 export async function likeComment(commentId) {
   const res = await api.post(`/posts/comments/${commentId}/like`);
-  return res.data; // { liked: true, likeCount }
+  return res.data;
 }
 
+// 댓글 좋아요 해제
 export async function unlikeComment(commentId) {
   const res = await api.delete(`/posts/comments/${commentId}/like`);
-  return res.data; // { liked: false, likeCount }
+  return res.data;
 }
 
+// 댓글 수정
 export async function updateCommentApi(commentId, content) {
   const res = await api.put(`/posts/comments/${commentId}`, { content });
-  return res.data.comment; // 업데이트된 comment 객체
+  return res.data.comment;
 }
 
+// 댓글 삭제
 export async function deleteCommentApi(commentId) {
   const res = await api.delete(`/posts/comments/${commentId}`);
-  return res.data; // { ok: true }
+  return res.data;
 }

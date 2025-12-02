@@ -1,4 +1,3 @@
-// server/controllers/notificationController.js
 const notificationModel = require("../models/notificationModel");
 
 exports.getSummary = async (req, res) => {

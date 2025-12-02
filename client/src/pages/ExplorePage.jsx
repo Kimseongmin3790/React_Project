@@ -1,4 +1,3 @@
-// src/pages/ExplorePage.jsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -88,7 +87,7 @@ function ExplorePage() {
   const [detailPostId, setDetailPostId] = useState(null);
   const { gameList } = useGameList();
 
-  const [daysRange, setDaysRange] = useState("7"); // "1" | "7" | "30"
+  const [daysRange, setDaysRange] = useState("7");
 
   const handleMenuClick = (key) => {
     setSelectedMenu(key);
@@ -204,7 +203,6 @@ function ExplorePage() {
     );
   }
 
-  // 🔔 헤더에서 알림 버튼 눌러 메뉴 열릴 때 호출 → 모두 읽음 처리
   const handleNotificationsOpened = async () => {
     if (unreadTotal > 0) {
       try {
@@ -216,7 +214,6 @@ function ExplorePage() {
     }
   };
 
-  // 🔔 알림 하나 클릭 시 동작
   const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
       if (n.roomId) {
@@ -226,14 +223,12 @@ function ExplorePage() {
       }
       return;
     }
-    // 게시글과 관련된 알림들
     if (
-      n.type === "FOLLOWED_USER_POST" || // 팔로우한 유저 새 글
-      n.type === "FOLLOWED_POST" ||      // 혹시 나중에 따로 쓸 경우
-      n.type === "COMMENT_MENTION"       // 댓글 멘션
+      n.type === "FOLLOWED_USER_POST" ||
+      n.type === "FOLLOWED_POST" ||
+      n.type === "COMMENT_MENTION"
     ) {
       if (n.postId) {
-        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
         navigate("/", { state: { openPostId: n.postId } });
       } else {
         navigate("/");
@@ -303,7 +298,7 @@ function ExplorePage() {
             gap: 3,
           }}
         >
-          {/* ───────── 상단 타이틀 + 기간 Chip 필터 ───────── */}
+          {/* ───────── 상단 타이틀 + 기간 필터 ───────── */}
           <Box
             sx={{
               display: "flex",
@@ -354,7 +349,7 @@ function ExplorePage() {
 
           {!loading && !error && (
             <>
-              {/* 🔹 인기 태그 섹션 */}
+              {/* 인기 태그 섹션 */}
               <Box>
                 <Box
                   sx={{
@@ -420,7 +415,7 @@ function ExplorePage() {
                 )}
               </Box>
 
-              {/* 🔹 최근 많이 올라오는 게임 섹션 */}
+              {/* 최근 많이 올라오는 게임 섹션 */}
               <Box>
                 <Box
                   sx={{
@@ -442,7 +437,7 @@ function ExplorePage() {
                   variant="body2"
                   sx={{ color: "text.secondary", mb: 1 }}
                 >
-                  {rangeLabel} 동안 클립이 많이 올라온 게임들이에요.
+                  {rangeLabel} 동안 피드가 많이 올라온 게임들이에요.
                 </Typography>
 
                 {trendingGames.length === 0 ? (
@@ -519,7 +514,7 @@ function ExplorePage() {
                 )}
               </Box>
 
-              {/* 🔹 랜덤 추천 클립 섹션 */}
+              {/* 랜덤 추천 피드 섹션 */}
               <Box>
                 <Box
                   sx={{
@@ -534,7 +529,7 @@ function ExplorePage() {
                     variant="subtitle1"
                     sx={{ fontWeight: "bold" }}
                   >
-                    랜덤 추천 클립
+                    랜덤 추천 피드
                   </Typography>
                 </Box>
                 <Typography
@@ -546,7 +541,7 @@ function ExplorePage() {
 
                 {randomPosts.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
-                    아직 추천할 클립이 없습니다.
+                    아직 추천할 피드가 없습니다.
                   </Typography>
                 ) : (
                   <Grid container spacing={1}>

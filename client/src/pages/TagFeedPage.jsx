@@ -18,7 +18,7 @@ import CaptionWithHashtags from "../components/post/CaptionWithHashtags";
 import CreatePostDialog from "../components/post/CreatePostDialog";
 import PostDetailDialog from "../components/post/postDetail";
 
-import { fetchTagFeed } from "../api/tagApi";      // /api/tags/:tagName/posts 같은 거
+import { fetchTagFeed } from "../api/tagApi"; 
 import {
   getNotificationSummary,
   markAllNotificationsRead,
@@ -68,23 +68,20 @@ function TagFeedPage() {
   const navigate = useNavigate();
   const theme = useTheme();
 
-  const [selectedMenu, setSelectedMenu] = useState("explore"); // 탐색 탭 이름에 맞게
+  const [selectedMenu, setSelectedMenu] = useState("explore");
   const [createOpen, setCreateOpen] = useState(false);
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // 알림
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [searchText, setSearchText] = useState("");
 
-  // 상세 모달
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState(null);
 
-  // ───────── SideNav ─────────
   const handleMenuClick = (key) => {
     setSelectedMenu(key);
 
@@ -100,7 +97,6 @@ function TagFeedPage() {
     }
   };
 
-  // ───────── 알림 소켓/요약 ─────────
   useEffect(() => {
     if (!user) return;
 
@@ -173,14 +169,12 @@ function TagFeedPage() {
       }
       return;
     }
-    // 게시글과 관련된 알림들
     if (
-      n.type === "FOLLOWED_USER_POST" || // 팔로우한 유저 새 글
-      n.type === "FOLLOWED_POST" ||      // 혹시 나중에 따로 쓸 경우
-      n.type === "COMMENT_MENTION"       // 댓글 멘션
+      n.type === "FOLLOWED_USER_POST" ||
+      n.type === "FOLLOWED_POST" || 
+      n.type === "COMMENT_MENTION"
     ) {
       if (n.postId) {
-        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
         navigate("/", { state: { openPostId: n.postId } });
       } else {
         navigate("/");
@@ -199,7 +193,7 @@ function TagFeedPage() {
       setLoading(true);
       setError("");
       try {
-        const list = await fetchTagFeed(tagName); // /api/tags/:tagName/posts
+        const list = await fetchTagFeed(tagName);
         setPosts(Array.isArray(list) ? list : []);
       } catch (err) {
         console.error("태그 피드 로딩 실패:", err);
@@ -302,7 +296,6 @@ function TagFeedPage() {
             <Typography>아직 이 태그로 등록된 클립이 없습니다.</Typography>
           )}
 
-          {/* 유저 프로필 / 검색 결과에서 쓰는 카드 레이아웃 재사용 느낌 */}
           {posts.map((p) => (
             <Card
               key={p.id}

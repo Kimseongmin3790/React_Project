@@ -1,4 +1,3 @@
-// src/components/user/MyStatsPanel.jsx
 import React, { useEffect, useState } from "react";
 import {
   Box,

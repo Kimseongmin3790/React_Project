@@ -1,4 +1,3 @@
-// src/hooks/useGameList.js
 import { useEffect, useState } from "react";
 import { fetchGameList } from "../api/postApi";
 

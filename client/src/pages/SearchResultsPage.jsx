@@ -1,4 +1,3 @@
-// client/src/pages/SearchResultsPage.jsx
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
@@ -83,22 +82,17 @@ function SearchResultsPage() {
   });
   const [loading, setLoading] = useState(false);
 
-  // 🔔 알림
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [notifications, setNotifications] = useState([]);
 
-  // 검색창 (헤더)
   const [searchText, setSearchText] = useState(query || "");
 
-  // 🔹 사이드바 / 모달 상태
   const [selectedMenu, setSelectedMenu] = useState("main");
   const [createOpen, setCreateOpen] = useState(false);
 
-  // 🔹 게시글 상세 모달 상태
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState(null);
 
-  // ───────── 사이드바 메뉴 클릭 핸들러 ─────────
   const handleMenuClick = (key) => {
     setSelectedMenu(key);
 
@@ -114,7 +108,6 @@ function SearchResultsPage() {
     }
   };
 
-  // ───────── 알림 + 소켓 ─────────
   useEffect(() => {
     if (!user) return;
 
@@ -170,7 +163,6 @@ function SearchResultsPage() {
     };
   }, [user]);
 
-  // ───────── 검색 결과 로딩 ─────────
   useEffect(() => {
     if (!query.trim()) return;
     (async () => {
@@ -194,7 +186,6 @@ function SearchResultsPage() {
     navigate(`/search?query=${encodeURIComponent(q)}`);
   };
 
-  // 🔔 헤더에서 알림 버튼 눌러 메뉴 열릴 때 → 모두 읽음 처리
   const handleNotificationsOpened = async () => {
     if (unreadTotal > 0) {
       try {
@@ -206,7 +197,6 @@ function SearchResultsPage() {
     }
   };
 
-  // 🔔 알림 하나 클릭 시 동작
   const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
       if (n.roomId) {
@@ -216,14 +206,12 @@ function SearchResultsPage() {
       }
       return;
     }
-    // 게시글과 관련된 알림들
     if (
-      n.type === "FOLLOWED_USER_POST" || // 팔로우한 유저 새 글
-      n.type === "FOLLOWED_POST" ||      // 혹시 나중에 따로 쓸 경우
-      n.type === "COMMENT_MENTION"       // 댓글 멘션
+      n.type === "FOLLOWED_USER_POST" || 
+      n.type === "FOLLOWED_POST" || 
+      n.type === "COMMENT_MENTION"  
     ) {
       if (n.postId) {
-        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
         navigate("/", { state: { openPostId: n.postId } });
       } else {
         navigate("/");
@@ -234,7 +222,6 @@ function SearchResultsPage() {
     console.log("unknown notification type:", n);
   };
 
-  // ───────── PostDetail 모달 관련 ─────────
   const openDetail = (postId) => {
     setDetailPostId(postId);
     setDetailOpen(true);
@@ -245,7 +232,6 @@ function SearchResultsPage() {
     setDetailOpen(false);
   };
 
-  // 상세 모달에서 좋아요/북마크/댓글 수 변경 시 검색 결과 리스트에도 반영
   const handlePostUpdatedFromDetail = (updatedPost) => {
     setData((prev) => ({
       ...prev,
@@ -253,7 +239,6 @@ function SearchResultsPage() {
         p.id === updatedPost.id
           ? {
               ...p,
-              // 🔹 본문 / 게임 정보
               caption:
                 typeof updatedPost.caption !== "undefined"
                   ? updatedPost.caption
@@ -271,7 +256,6 @@ function SearchResultsPage() {
                   ? updatedPost.gameSlug
                   : p.gameSlug,
 
-              // 🔹 썸네일 (getPostById에서 내려줄 경우)
               thumbnailUrl:
                 typeof updatedPost.thumbUrl !== "undefined"
                   ? updatedPost.thumbUrl
@@ -281,7 +265,6 @@ function SearchResultsPage() {
                   ? updatedPost.thumbType
                   : p.thumbType,
 
-              // 🔹 좋아요/북마크/댓글
               isLiked:
                 typeof updatedPost.isLiked !== "undefined"
                   ? updatedPost.isLiked
@@ -304,7 +287,6 @@ function SearchResultsPage() {
     }));
   };
 
-  // ───────── 탭별 렌더링 헬퍼 ─────────
   const renderUsers = () => {
     if (!data.users.length) {
       return <Typography>검색된 유저가 없습니다.</Typography>;
@@ -449,7 +431,6 @@ function SearchResultsPage() {
     ));
   };
 
-  // ───────── RENDER ─────────
   return (
     <Box
       sx={{

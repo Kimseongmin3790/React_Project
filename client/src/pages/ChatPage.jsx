@@ -1,4 +1,3 @@
-// src/pages/ChatPage.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import {
@@ -37,7 +36,6 @@ import CreatePostDialog from "../components/post/CreatePostDialog";
 const SOCKET_URL = "http://localhost:3020";
 const API_ORIGIN = "http://localhost:3020";
 
-// 🔔 피드/마이페이지와 동일한 알림 정규화 함수
 function normalizeNotification(raw) {
   if (!raw) return null;
 
@@ -72,20 +70,20 @@ function ChatPage() {
   const { user, logout } = useAuth();
   const theme = useTheme();
 
-  const socketRef = useRef(null);          // 채팅용 소켓
+  const socketRef = useRef(null);
   const currentRoomIdRef = useRef(null);
   const bottomRef = useRef(null);
 
   const [selectedMenu, setSelectedMenu] = useState("chat");
   const [createOpen, setCreateOpen] = useState(false);
 
-  const [mode, setMode] = useState("GAME"); // GAME | DM
+  const [mode, setMode] = useState("GAME");
   const [gameList, setGameList] = useState([]);
   const [selectedGameId, setSelectedGameId] = useState("");
   const [gameSearch, setGameSearch] = useState("");
 
   const [currentRoomId, setCurrentRoomId] = useState(null);
-  const [roomInfo, setRoomInfo] = useState(null); // { type, gameId, gameName, otherUserId }
+  const [roomInfo, setRoomInfo] = useState(null);
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -97,11 +95,9 @@ function ChatPage() {
   const [dmSearchLoading, setDmSearchLoading] = useState(false);
   const [dmSearchError, setDmSearchError] = useState("");
 
-  // 🔔 채팅방별 안읽은 메시지 요약 (ChatApi용)
-  const [unreadSummary, setUnreadSummary] = useState({}); // { [roomId]: count }
-  const [lastNotification, setLastNotification] = useState(null); // 마지막 채팅 알림용
+  const [unreadSummary, setUnreadSummary] = useState({});
+  const [lastNotification, setLastNotification] = useState(null);
 
-  // 🔔 상단 헤더용 글로벌 알림 상태
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const initialRoomId = location.state?.openRoomId || null;
@@ -150,7 +146,6 @@ function ChatPage() {
         if (!currentRoomIdRef.current) return prev;
         // 현재 보고 있는 방 메시지만 화면에 추가
         if (msg.roomId !== currentRoomIdRef.current) {
-          // 다른 방 메시지는 여기서는 UI에 안 붙이고 unreadSummary로만 관리
           return prev;
         }
         return [...prev, msg];
@@ -190,9 +185,8 @@ function ChatPage() {
 
   useEffect(() => {
     if (!initialRoomId) return;
-    if (!socketRef.current) return;   // 소켓 아직 준비 안 됐으면 리턴
+    if (!socketRef.current) return;
 
-    // 1) roomId로 방 메타 정보 조회 (GAME/DM, gameId, otherUserId)
     (async () => {
       try {
         const meta = await fetchFindChatRoomById(initialRoomId);
@@ -216,7 +210,6 @@ function ChatPage() {
     })();
   }, [initialRoomId]);
 
-  // ────────────────────────── 상단 헤더용 알림 소켓 / 요약 ──────────────────────────
   useEffect(() => {
     if (!user) return;
 
@@ -273,7 +266,6 @@ function ChatPage() {
     };
   }, [user]);
 
-  // 🔔 헤더에서 알림 버튼 눌러 메뉴 열릴 때 → 모두 읽음 처리
   const handleNotificationsOpened = async () => {
     if (unreadTotal > 0) {
       try {
@@ -285,7 +277,6 @@ function ChatPage() {
     }
   };
 
-  // 🔔 알림 하나 클릭 시 동작
   const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
       if (n.roomId) {
@@ -295,14 +286,12 @@ function ChatPage() {
       }
       return;
     }
-    // 게시글과 관련된 알림들
     if (
       n.type === "FOLLOWED_USER_POST" ||
       n.type === "FOLLOWED_POST" ||
       n.type === "COMMENT_MENTION"
     ) {
       if (n.postId) {
-        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
         navigate("/", { state: { openPostId: n.postId } });
       } else {
         navigate("/");
@@ -474,7 +463,7 @@ function ChatPage() {
     }
   };
 
-  // ────────────────────────── UI helpers ──────────────────────────
+  // ────────────────────────── UI ──────────────────────────
   const renderRoomTitle = () => {
     if (!roomInfo) return "채팅방을 선택하세요";
 
@@ -559,7 +548,6 @@ function ChatPage() {
 
       {/* 오른쪽 메인 영역 */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        {/* ✅ 공통 상단 헤더: 이제 진짜 알림/레벨 다 뜸 */}
         <MainHeader
           user={user}
           unreadTotal={unreadTotal}

@@ -1,4 +1,3 @@
-// controllers/achievementController.js
 const achievementModel = require("../models/achievementModel");
 
 exports.getAllAchievementsForMe = async (req, res) => {

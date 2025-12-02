@@ -1,9 +1,9 @@
 const gameModel = require("../models/gameModel");
 
+// 게임 목록
 exports.listGames = async (req, res) => {
   try {
     const games = await gameModel.getAllGames();
-    // [{ id, name, slug }, ...]
     res.json({ games });
   } catch (err) {
     console.error("listGames error:", err);
@@ -11,6 +11,7 @@ exports.listGames = async (req, res) => {
   }
 };
 
+// 게임 랭킹 목록
 exports.getGameRanking = async (req, res) => {
   try {
     const raw = req.query.rangeDays;
@@ -34,7 +35,6 @@ exports.getGameRanking = async (req, res) => {
       totalLikes: row.totalLikes,
       totalComments: row.totalComments,
       lastPostAt: row.lastPostAt,
-      // 점수는 프론트에서 쓰기 좋게 대충 계산
       score: row.totalLikes * 2 + row.totalComments + row.postCount,
     }));
 

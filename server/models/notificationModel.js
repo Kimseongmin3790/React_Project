@@ -1,4 +1,3 @@
-// server/models/notificationModel.js
 const db = require("../db");
 
 // 팔로워 알림용
@@ -57,6 +56,7 @@ async function createForChatMessage(receiverIds, senderId, roomId, content) {
   );
 }
 
+// 맨션 알림용
 async function createForCommentMention(receiverId, actorId, postId, preview) {
   await db.query(
     `
@@ -104,6 +104,7 @@ async function getSummaryByUserId(userId) {
   };
 }
 
+// 모두 읽음표시
 async function markAllReadByUserId(userId) {
   await db.query(
     `

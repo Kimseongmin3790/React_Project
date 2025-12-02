@@ -8,7 +8,7 @@ async function getFeed({ page = 1, limit = 10, gameId = null, currentUserId = nu
 
   const userIdParam = currentUserId || 0;
 
-  const params = [userIdParam, userIdParam]; // 좋아요, 북마크
+  const params = [userIdParam, userIdParam];
   let whereSql = "";
 
   if (gameId) {
@@ -50,7 +50,7 @@ async function getFeed({ page = 1, limit = 10, gameId = null, currentUserId = nu
 }
 
 async function getPostById({ postId, currentUserId = null }) {
-  const userIdParam = currentUserId || 0; // 0이면 어떤 like/bookmark도 매칭 안 됨
+  const userIdParam = currentUserId || 0;
 
   const sqlPost = `
     SELECT 
@@ -157,8 +157,8 @@ async function getMyBookmarkedPosts({ userId, page = 1, limit = 10 }) {
   const limitNum = Number.isFinite(Number(limit)) ? Number(limit) : 10;
   const offset = (pageNum - 1) * limitNum;
 
-  // 1) 내가 북마크한 post 목록 기준
-  const params = [userId, userId]; // like용, where용
+  // 내가 북마크한 post 목록 기준
+  const params = [userId, userId];
   const sql = `
     SELECT 
       p.id,
@@ -194,7 +194,6 @@ async function getMyBookmarkedPosts({ userId, page = 1, limit = 10 }) {
   return rows;
 }
 
-// 3) 새 listPosts: 지금은 getFeed를 그대로 래핑만 해도 됨
 async function listPosts(options) {
   return getFeed(options);
 }
@@ -241,7 +240,7 @@ async function listUserPosts({ authorUserId, page = 1, limit = 12, currentUserId
   return rows;
 }
 
-// 글 내용/게임만 수정 (이미지 수정은 나중에 별도)
+// 글 내용/게임만 수정
 async function updatePost(postId, userId, { caption, gameId }) {
   const [result] = await db.query(
     `
@@ -252,7 +251,7 @@ async function updatePost(postId, userId, { caption, gameId }) {
     [caption, gameId, postId, userId]
   );
 
-  return result.affectedRows; // 1이면 성공, 0이면 권한없음/없는글
+  return result.affectedRows;
 }
 
 async function deletePost(postId, userId) {
@@ -279,6 +278,7 @@ async function deletePost(postId, userId) {
   }
 }
 
+// 랜덤 피드 목록
 async function findRandomPosts({ limit = 20 }) {
   const [rows] = await db.query(
     `
@@ -309,7 +309,7 @@ async function findRandomPosts({ limit = 20 }) {
   return rows;
 }
 
-// (A) 댓글 좋아요 추가
+// 댓글 좋아요
 async function insertCommentLike(commentId, userId) {
   await db.query(
     `INSERT IGNORE INTO comment_likes (comment_id, user_id)
@@ -318,7 +318,7 @@ async function insertCommentLike(commentId, userId) {
   );
 };
 
-// (B) 댓글 좋아요 취소
+// 댓글 좋아요 취소
 async function deleteCommentLike(commentId, userId) {
   await db.query(
     `DELETE FROM comment_likes
@@ -327,7 +327,7 @@ async function deleteCommentLike(commentId, userId) {
   );
 };
 
-// (C) 댓글 좋아요 수
+// 댓글 좋아요 수
 async function countCommentLikes(commentId) {
   const [rows] = await db.query(
     `SELECT COUNT(*) AS cnt
@@ -338,7 +338,7 @@ async function countCommentLikes(commentId) {
   return rows[0]?.cnt || 0;
 };
 
-// (D) 댓글 단일 조회 (수정 후 반환용)
+// 댓글 단일 조회
 async function getCommentById(commentId, viewerId) {
   const [rows] = await db.query(
     `SELECT c.id,
@@ -369,7 +369,7 @@ async function getCommentById(commentId, viewerId) {
   return rows[0] || null;
 };
 
-// (E) 댓글 목록 조회 (뷰어 기준 좋아요 여부 포함)
+// 댓글 목록 조회 (뷰어 기준 좋아요 여부 포함)
 async function getCommentsByPostIdWithLikes(postId, viewerId) {
   const [rows] = await db.query(
     `SELECT c.id,
@@ -400,7 +400,7 @@ async function getCommentsByPostIdWithLikes(postId, viewerId) {
   return rows;
 };
 
-// (F) 댓글 수정
+// 댓글 수정
 async function updateComment(commentId, userId, content) {
   const [result] = await db.query(
     `UPDATE post_comments
@@ -411,13 +411,13 @@ async function updateComment(commentId, userId, content) {
   return result.affectedRows > 0;
 };
 
-// (G) 댓글 삭제
+// 댓글 삭제
 async function deleteComment(commentId, userId) {
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
 
-    // 1) 댓글이 어떤 글의 누구 댓글인지 확인
+    // 댓글이 어떤 글의 누구 댓글인지 확인
     const [rows] = await conn.execute(
       `SELECT post_id, user_id FROM post_comments WHERE id = ?`,
       [commentId]
@@ -425,26 +425,25 @@ async function deleteComment(commentId, userId) {
 
     if (rows.length === 0) {
       await conn.rollback();
-      return false; // 컨트롤러에서 403 / not found 처리
+      return false;
     }
 
     const postId = rows[0].post_id;
     const authorId = rows[0].user_id;
 
-    // 2) 본인 댓글인지 확인 (관리자 체크 필요하면 여기에서)
+    // 본인 댓글인지 확인
     if (authorId !== userId) {
       await conn.rollback();
       return false;
     }
 
-    // 3) 실제 삭제
+    // 실제 삭제
     const [delResult] = await conn.execute(
       `DELETE FROM post_comments WHERE id = ?`,
       [commentId]
     );
 
     if (delResult.affectedRows > 0) {
-      // 4) posts.comment_count 1 감소
       await conn.execute(
         `
         UPDATE posts

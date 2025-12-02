@@ -1,13 +1,11 @@
-// server/socket/chatSocket.js
 const jwt = require("jsonwebtoken");
-const chatModel = require("../models/chatModel"); // 경로 주의! (../models)
+const chatModel = require("../models/chatModel");
 const notificationService = require("../services/notificationService");
 
 // 서버 메모리에 유지할 유저별 소켓 목록
 const onlineUsers = new Map();
 
 function initChatSocket(io) {
-  // 소켓 인증 미들웨어 (JWT)
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) {
@@ -41,7 +39,7 @@ function initChatSocket(io) {
 
     socket.data.currentRoomId = null;
 
-    // 1) 게임 채팅방 참여
+    // 게임 채팅방 참여
     socket.on("chat:joinGame", async (gameId, callback) => {
       try {
         if (!gameId) return;
@@ -86,7 +84,7 @@ function initChatSocket(io) {
       }
     });
 
-    // 2) DM 방 참여
+    // DM 방 참여
     socket.on("chat:joinDm", async (otherUserId, callback) => {
       try {
         const myId = socket.user.id;
@@ -129,7 +127,7 @@ function initChatSocket(io) {
       }
     });
 
-    // 3) 메시지 보내기 (게임/DM 공통)
+    // 메시지 보내기 (게임/DM 공통)
     socket.on("chat:message", async (payload) => {
       try {
         const { roomId, text } = payload || {};
@@ -154,7 +152,7 @@ function initChatSocket(io) {
         );
 
         // 방 멤버 조회
-        const members = await chatModel.getRoomMembers(roomId); // [{ userId }, ...]
+        const members = await chatModel.getRoomMembers(roomId);
         const receiverIds = [];
         for (const m of members) {
             if (m.userId !== socket.user.id) receiverIds.push(m.userId);

@@ -6,9 +6,9 @@ async function updateUserStats(
   {
     post = 0,
     like = 0,
-    comment = 0,          // 내가 게시글에 '받은' 댓글 수
-    writtenComment = 0,   // 내가 '작성'한 댓글 수
-    mentioned = 0,        // 내가 멘션 당한 횟수
+    comment = 0,
+    writtenComment = 0,   
+    mentioned = 0,      
     exp = 0,
   }
 ) {
@@ -57,12 +57,10 @@ exports.updateOnReceivedComment = (authorId) => {
 };
 
 exports.updateOnWriteComment = (authorId) => {
-  // 경험치는 취향껏. 여기선 3으로 맞춰둠.
   return updateUserStats(authorId, { writtenComment: 1, exp: 3 });
 };
 
 exports.updateOnMentioned = (userId) => {
-  // 멘션 한 번 당할 때마다 exp 1 준다든가
   return updateUserStats(userId, { mentioned: 1, exp: 1 });
 };
 

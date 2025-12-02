@@ -1,6 +1,6 @@
 const db = require("../db");
 
-// 1) 게임 방 가져오거나 생성
+// 게임 방 가져오거나 생성
 async function getOrCreateGameRoom(gameId) {
   // 이미 있는지 먼저 확인
   const [rows] = await db.query(
@@ -22,9 +22,8 @@ async function getOrCreateGameRoom(gameId) {
   };
 }
 
-// 2) DM 방 가져오거나 생성 (userId1 ↔ userId2)
+// DM 방 가져오거나 생성
 async function getOrCreateDmRoom(userId1, userId2) {
-  // 두 사람 w가 모두 들어있는 DM방을 찾는다
   const [rows] = await db.query(
     `
     SELECT cr.*
@@ -66,7 +65,7 @@ async function getOrCreateDmRoom(userId1, userId2) {
   }
 }
 
-// 3) 메시지 저장
+// 메시지 저장
 async function insertMessage({ roomId, senderId, content }) {
   const [result] = await db.query(
     "INSERT INTO chat_message (room_id, sender_id, content) VALUES (?, ?, ?)",
@@ -145,7 +144,7 @@ async function getRoomMembers(roomId) {
     "SELECT user_id AS userId FROM chat_room_user WHERE room_id = ?",
     [roomId]
   );
-  return rows; // [{ userId: 1 }, { userId: 2 }, ...]
+  return rows;
 }
 
 async function getUnreadSummary(userId) {
@@ -167,7 +166,7 @@ async function getUnreadSummary(userId) {
     `,
     [userId, userId, userId]
   );
-  return rows; // [{ roomId: 3, unreadCount: 5 }, ...]
+  return rows;
 }
 
 async function getRoomMetaById(roomId, currentUserId) {
@@ -212,7 +211,6 @@ async function getRoomMetaById(roomId, currentUserId) {
       [roomId]
     );
 
-    // 이론상 DM이면 2명 있어야 하지만 방어코드
     if (!users.length) {
       return {
         roomId: room.id,
@@ -221,7 +219,6 @@ async function getRoomMetaById(roomId, currentUserId) {
       };
     }
 
-    // 나 아닌 다른 유저 찾기
     const other = users.find((u) => u.user_id !== currentUserId);
 
     return {
@@ -231,7 +228,6 @@ async function getRoomMetaById(roomId, currentUserId) {
     };
   }
 
-  // 혹시 모를 이상한 타입
   return null;
 }
 

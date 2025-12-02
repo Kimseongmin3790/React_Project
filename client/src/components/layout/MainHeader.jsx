@@ -1,4 +1,3 @@
-// src/components/layout/MainHeader.jsx
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -20,7 +19,7 @@ import ArticleIcon from "@mui/icons-material/Article";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import { buildFileUrl } from "../../utils/url";
 import { useTheme } from "@mui/material/styles";
-import { fetchMyStats } from "../../api/userApi"; // ⭐ 내 스탯 조회 API
+import { fetchMyStats } from "../../api/userApi";
 
 function MainHeader({
   user,
@@ -40,7 +39,6 @@ function MainHeader({
   const open = Boolean(anchorEl);
   const theme = useTheme();
 
-  // 🔥 헤더에서도 유저 레벨/EXP 표시용
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
@@ -55,7 +53,7 @@ function MainHeader({
     (async () => {
       try {
         setStatsLoading(true);
-        const data = await fetchMyStats(); // GET /users/me/stats 같은 API
+        const data = await fetchMyStats();
         if (!cancelled) setStats(data.stats);
       } catch (err) {
         console.error("MainHeader fetchMyStats error:", err);
@@ -168,7 +166,7 @@ function MainHeader({
             gap: 1.5,
           }}
         >
-          {/* 🔔 알림 버튼 + 배지 */}
+          {/* 알림 버튼 + 배지 */}
           <IconButton color="inherit" onClick={handleOpen}>
             <Badge
               color="error"
@@ -179,7 +177,7 @@ function MainHeader({
             </Badge>
           </IconButton>
 
-          {/* 프로필 아바타 */}
+          {/* 프로필 이미지 */}
           <IconButton color="inherit" onClick={onClickProfile}>
             <Avatar
               sx={{ width: 32, height: 32 }}
@@ -189,7 +187,7 @@ function MainHeader({
             </Avatar>
           </IconButton>
 
-          {/* 🔥 프로필 오른쪽에 레벨/EXP 표시 */}
+          {/* 프로필 오른쪽에 레벨/EXP 표시 */}
           {user && stats && (
             <Box
               sx={{
@@ -229,7 +227,7 @@ function MainHeader({
         </Box>
       </Box>
 
-      {/* 🔔 알림 드롭다운 메뉴 */}
+      {/* 알림 드롭다운 메뉴 */}
       <Menu
         anchorEl={anchorEl}
         open={open}

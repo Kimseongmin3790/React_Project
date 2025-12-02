@@ -1,4 +1,3 @@
-// src/components/PostDetailDialog.jsx
 import React, { useEffect, useState } from "react";
 import {
   Dialog,
@@ -139,13 +138,11 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
   const renderCaptionWithHashtags = (text) => {
     if (!text) return null;
 
-    // "#태그" 구간만 잘라서 보존하는 정규식
     const parts = text.split(/(\#[^\s#]+)/g);
 
     return parts.map((part, idx) => {
-      // 해시태그인 부분
       if (/^\#[^\s#]+$/.test(part)) {
-        const tagName = part.slice(1); // "#" 제거
+        const tagName = part.slice(1);
         return (
           <Typography
             key={idx}
@@ -162,7 +159,6 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
         );
       }
 
-      // 일반 텍스트 부분
       return (
         <Typography key={idx} component="span">
           {part}
@@ -191,7 +187,7 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
       setPost(refreshed);
       
       if (onPostUpdated) {
-        onPostUpdated(refreshed); // FeedPage에도 반영
+        onPostUpdated(refreshed);
       }
     } catch (err) {
       console.error("수정 후 게시글 재로딩 실패:", err);
@@ -330,12 +326,10 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
 
       setComments((prev) =>
         prev.map((c) => {
-          // 최상위 댓글인 경우
           if (c.id === comment.id) {
             return { ...c, isLiked: liked ? 1 : 0, likeCount };
           }
 
-          // 대댓글 안에 있는 경우
           if (c.replies && c.replies.length > 0) {
             return {
               ...c,
@@ -346,7 +340,6 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
               ),
             };
           }
-
           return c;
         })
       );
@@ -374,7 +367,6 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
 
       setComments((prev) =>
         prev.map((c) => {
-          // 최상위 댓글
           if (c.id === commentId) {
             return {
               ...c,
@@ -383,7 +375,6 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
             };
           }
 
-          // 대댓글
           if (c.replies && c.replies.length > 0) {
             return {
               ...c,
@@ -419,12 +410,10 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
       setComments((prev) =>
         prev
           .map((c) => {
-            // 최상위 댓글이면 아예 제거
             if (c.id === commentId) {
               return null;
             }
 
-            // 대댓글이면 해당 대댓글만 제거
             if (c.replies && c.replies.length > 0) {
               return {
                 ...c,
@@ -437,7 +426,6 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
           .filter(Boolean)
       );
 
-      // 게시글 댓글 수 1 감소
       setPost((prev) => {
         if (!prev) return prev;
         const next = {
@@ -471,7 +459,6 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
     const value = e.target.value;
     setCommentInput(value);
 
-    // 현재 텍스트 끝부분에서 @something 패턴 찾기
     const match = value.match(/@([A-Za-z0-9_가-힣]{1,20})$/);
     if (!match) {
       setMentionOpen(false);
@@ -483,7 +470,6 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
     const q = match[1];
     setMentionQuery(q);
 
-    // 너무 짧으면 요청 안 보냄 (원하면 2자로 늘려도 됨)
     if (q.length < 1) {
       setMentionOpen(false);
       setMentionCandidates([]);
@@ -497,18 +483,17 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
 
     mentionDebounceRef.current = setTimeout(async () => {
       try {
-        const list = await searchUsers(q); // 이미 DM에서 쓰던 API
+        const list = await searchUsers(q);
         setMentionCandidates(list || []);
         setMentionOpen(list && list.length > 0);
       } catch (err) {
         console.error("mention search error:", err);
         setMentionOpen(false);
       }
-    }, 200); // 200~300ms 정도
+    }, 200);
   };
 
   const handleSelectMention = (u) => {
-    // 현재 입력 끝의 @문자열 부분을 @username 으로 교체
     setCommentInput((prev) =>
       prev.replace(/@([A-Za-z0-9_가-힣]{1,20})$/, `@${u.username} `)
     );
@@ -530,7 +515,7 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
         if (parent) {
           parent.replies.push(c);
         } else {
-          roots.push(c); // 혹시 parent가 삭제된 경우 방어
+          roots.push(c);
         }
       } else {
         roots.push(c);

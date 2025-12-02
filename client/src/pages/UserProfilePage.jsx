@@ -1,4 +1,3 @@
-// client/src/pages/UserProfilePage.jsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -67,7 +66,7 @@ function UserProfilePage() {
   const [searchText, setSearchText] = useState("");
 
   const [selectedMenu, setSelectedMenu] = useState("profile");
-  const [createOpen, setCreateOpen] = useState(false); // 🔹 글쓰기 모달
+  const [createOpen, setCreateOpen] = useState(false);
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -87,7 +86,6 @@ function UserProfilePage() {
   const [followLoading, setFollowLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 게시글 상세 모달
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState(null);
 
@@ -118,7 +116,6 @@ function UserProfilePage() {
   useEffect(() => {
     if (!userId) return;
 
-    // 내 아이디를 /users/:id 로 직접 들어온 경우 → /me로 리다이렉트
     if (user && String(user.id) === String(userId)) {
       navigate("/me", { replace: true });
       return;
@@ -267,7 +264,6 @@ function UserProfilePage() {
     );
   };
 
-  // 🔔 헤더에서 알림 메뉴 열릴 때 → 모두 읽음 처리
     const handleNotificationsOpened = async () => {
       if (unreadTotal > 0) {
         try {
@@ -279,7 +275,6 @@ function UserProfilePage() {
       }
     };
   
-    // 🔔 개별 알림 클릭 시
     const handleNotificationClick = (n) => {
     if (n.type === "CHAT_MESSAGE") {
       if (n.roomId) {
@@ -289,14 +284,12 @@ function UserProfilePage() {
       }
       return;
     }
-    // 게시글과 관련된 알림들
     if (
-      n.type === "FOLLOWED_USER_POST" || // 팔로우한 유저 새 글
-      n.type === "FOLLOWED_POST" ||      // 혹시 나중에 따로 쓸 경우
-      n.type === "COMMENT_MENTION"       // 댓글 멘션
+      n.type === "FOLLOWED_USER_POST" || 
+      n.type === "FOLLOWED_POST" || 
+      n.type === "COMMENT_MENTION" 
     ) {
       if (n.postId) {
-        // 메인 피드로 이동하면서 열어야 할 postId를 state로 넘김
         navigate("/", { state: { openPostId: n.postId } });
       } else {
         navigate("/");
@@ -309,7 +302,7 @@ function UserProfilePage() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#fafafa" }}>
-      {/* 왼쪽 인스타 스타일 사이드바 */}
+      {/* 왼쪽 사이드바 */}
       <SideNav selectedMenu={selectedMenu} onMenuClick={handleMenuClick} />
 
       {/* 오른쪽 메인 영역 */}
@@ -340,7 +333,7 @@ function UserProfilePage() {
             </Typography>
           )}
 
-          {/* 🔥 상단 프로필 헤더 */}
+          {/* 상단 프로필 헤더 */}
           {profile && (
             <Card
               sx={{
@@ -417,7 +410,7 @@ function UserProfilePage() {
             </Card>
           )}
 
-          {/* 🔥 아래: 이 유저가 올린 피드 그리드 */}
+          {/* 아래: 이 유저가 올린 피드 그리드 */}
           {!loading && profile && (
             <>
               {posts.length === 0 ? (
@@ -481,7 +474,7 @@ function UserProfilePage() {
             onPostUpdated={handlePostUpdatedFromDetail}
           />
 
-          {/* 🔥 글쓰기 모달 */}
+          {/* 글쓰기 모달 */}
           <CreatePostDialog
             open={createOpen}
             onClose={() => setCreateOpen(false)}

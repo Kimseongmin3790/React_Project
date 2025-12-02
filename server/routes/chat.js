@@ -4,12 +4,10 @@ const authMiddleware = require("../middleware/auth");
 const chatModel = require("../models/chatModel");
 const chatController = require("../controllers/chatController");
 
-// GET /api/chat/unread
 router.get("/unread", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
     const rooms = await chatModel.getUnreadSummary(userId);
-    // rooms: [{ roomId, unreadCount }]
     res.json({ rooms });
   } catch (err) {
     console.error("GET /api/chat/unread error:", err);

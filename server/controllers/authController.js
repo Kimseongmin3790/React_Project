@@ -1,4 +1,3 @@
-// controllers/authController.js
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
@@ -104,7 +103,6 @@ exports.login = async (req, res) => {
 // 내 정보
 exports.me = async (req, res) => {
   try {
-    // auth 미들웨어가 req.user를 세팅해 줌
     res.json({ user: req.user });
   } catch (err) {
     console.error('me error:', err);
@@ -112,6 +110,7 @@ exports.me = async (req, res) => {
   }
 };
 
+// 비밀번호 재설정(임시 비밀번호 발급)
 exports.resetPassword = async (req, res) => {
   const { email } = req.body;
   if (!email) {
@@ -145,7 +144,7 @@ exports.resetPassword = async (req, res) => {
     return res.json({
       ok: true,
       message: "임시 비밀번호가 발급되었습니다.",
-      tempPassword, // 프론트에서 보여주기
+      tempPassword,
     });
   } catch (err) {
     console.error("resetPassword error:", err);

@@ -1,4 +1,3 @@
-// src/components/post/CaptionWithHashtags.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -14,7 +13,7 @@ function parseCaption(text, onClickTag) {
     if (match.index > lastIndex) {
       parts.push({ type: "text", value: text.slice(lastIndex, match.index) });
     }
-    parts.push({ type: "tag", value: match[0].slice(1) }); // '#' 제거
+    parts.push({ type: "tag", value: match[0].slice(1) });
     lastIndex = match.index + match[0].length;
   }
   if (lastIndex < text.length) {

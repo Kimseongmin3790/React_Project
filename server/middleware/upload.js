@@ -33,7 +33,6 @@ const upload = multer({
   },
 });
 
-// ✅ 게시글용: 이미지 여러 장 + 영상 1개
 const uploadPostMedia = upload.fields([
   { name: "images", maxCount: 5 },
   { name: "videos", maxCount: 1 },

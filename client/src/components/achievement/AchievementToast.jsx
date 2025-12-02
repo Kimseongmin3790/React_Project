@@ -1,4 +1,3 @@
-// src/components/achievement/AchievementToast.jsx
 import React from "react";
 import {
   Snackbar,
