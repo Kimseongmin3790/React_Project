@@ -32,7 +32,7 @@ CREATE TABLE `achievements` (
   `icon_url` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `code` (`code`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -41,7 +41,7 @@ CREATE TABLE `achievements` (
 
 LOCK TABLES `achievements` WRITE;
 /*!40000 ALTER TABLE `achievements` DISABLE KEYS */;
-INSERT INTO `achievements` VALUES (1,'FIRST_POST','첫 하이라이트','첫 번째 하이라이트 클립을 업로드했습니다.','{\"metric\":\"posts_created\",\"op\":\">=\",\"value\":1,\"exp_reward\":50}','2025-12-01 09:36:07','/images/achievements/first_post.png'),(2,'TEN_POSTS','하이라이트 수집가','하이라이트 클립을 10개 이상 업로드했습니다.','{\"metric\":\"posts_created\",\"op\":\">=\",\"value\":10,\"exp_reward\":150}','2025-12-01 09:36:07','/images/achievements/ten_posts.png'),(3,'FIFTY_POSTS','진정한 클립 장인','하이라이트 클립을 50개 이상 업로드했습니다.','{\"metric\":\"posts_created\",\"op\":\">=\",\"value\":50,\"exp_reward\":500}','2025-12-01 09:36:07','/images/achievements/fifty_posts.png'),(4,'FIRST_LIKE_RECEIVED','첫 좋아요','내 클립에 처음으로 좋아요를 받았습니다.','{\"metric\":\"total_likes_received\",\"op\":\">=\",\"value\":1,\"exp_reward\":50}','2025-12-01 09:36:07','/images/achievements/first_like.png'),(5,'TEN_LIKES_ONE_POST','인기 클립','단일 클립에서 좋아요 10개 이상을 받았습니다.','{\"metric\":\"max_likes_on_single_post\",\"op\":\">=\",\"value\":10,\"exp_reward\":200}','2025-12-01 09:36:07','/images/achievements/ten_likes_one_post.png'),(6,'HUNDRED_LIKES_TOTAL','좋아요 수집가','모든 클립을 합쳐 좋아요 100개 이상을 받았습니다.','{\"metric\":\"total_likes_received\",\"op\":\">=\",\"value\":100,\"exp_reward\":500}','2025-12-01 09:36:07','/images/achievements/hundred_likes_total.png'),(7,'FIRST_COMMENT_WRITTEN','첫 댓글','다른 유저의 클립에 처음으로 댓글을 남겼습니다.','{\"metric\":\"comments_written\",\"op\":\">=\",\"value\":1,\"exp_reward\":30}','2025-12-01 09:36:07','/images/achievements/first_comment_written.png'),(8,'TWENTY_COMMENTS_WRITTEN','활발한 댓글러','다른 유저의 클립에 댓글을 20개 이상 남겼습니다.','{\"metric\":\"comments_written\",\"op\":\">=\",\"value\":20,\"exp_reward\":150}','2025-12-01 09:36:07','/images/achievements/twenty_comments_written.png'),(9,'FIRST_COMMENT_RECEIVED','첫 피드백','내 클립에 첫 댓글을 받았습니다.','{\"metric\":\"comments_received\",\"op\":\">=\",\"value\":1,\"exp_reward\":50}','2025-12-01 09:36:07','/images/achievements/first_comment_received.png'),(10,'THREE_GAMES_POSTED','멀티 게이머','서로 다른 게임 3개 이상에서 클립을 업로드했습니다.','{\"metric\":\"games_posted_distinct\",\"op\":\">=\",\"value\":3,\"exp_reward\":150}','2025-12-01 09:36:07','/images/achievements/three_games_posted.png'),(11,'TEN_GAMES_POSTED','장르 파괴자','서로 다른 게임 10개 이상에서 클립을 업로드했습니다.','{\"metric\":\"games_posted_distinct\",\"op\":\">=\",\"value\":10,\"exp_reward\":400}','2025-12-01 09:36:07','/images/achievements/ten_games_posted.png'),(12,'FIVE_TAGS_USED','태그 입문자','서로 다른 해시태그 5개 이상을 사용했습니다.','{\"metric\":\"tags_used_distinct\",\"op\":\">=\",\"value\":5,\"exp_reward\":80}','2025-12-01 09:36:07','/images/achievements/five_tags_used.png'),(13,'TWENTY_TAGS_USED','태그 마스터','서로 다른 해시태그 20개 이상을 사용했습니다.','{\"metric\":\"tags_used_distinct\",\"op\":\">=\",\"value\":20,\"exp_reward\":250}','2025-12-01 09:36:07','/images/achievements/twenty_tags_used.png'),(14,'TEN_FOLLOWERS','작은 팬덤','팔로워가 10명 이상이 되었습니다.','{\"metric\":\"followers_count\",\"op\":\">=\",\"value\":10,\"exp_reward\":150}','2025-12-01 09:36:07','/images/achievements/ten_followers.png'),(15,'FIFTY_FOLLOWERS','인기 스트리머 꿈나무','팔로워가 50명 이상이 되었습니다.','{\"metric\":\"followers_count\",\"op\":\">=\",\"value\":50,\"exp_reward\":400}','2025-12-01 09:36:07','/images/achievements/fifty_followers.png'),(16,'THREE_DAYS_STREAK','3일 연속 하이라이트','3일 연속으로 클립을 업로드했습니다.','{\"metric\":\"daily_post_streak\",\"op\":\">=\",\"value\":3,\"exp_reward\":200}','2025-12-01 09:36:07','/images/achievements/three_days_streak.png'),(17,'SEVEN_DAYS_STREAK','일주일 연속 하이라이트','7일 연속으로 클립을 업로드했습니다.','{\"metric\":\"daily_post_streak\",\"op\":\">=\",\"value\":7,\"exp_reward\":500}','2025-12-01 09:36:07','/images/achievements/seven_days_streak.png');
+INSERT INTO `achievements` VALUES (1,'FIRST_POST','첫 하이라이트','첫 번째 하이라이트 클립을 업로드했습니다.','{\"metric\":\"posts_created\",\"op\":\">=\",\"value\":1,\"exp_reward\":50}','2025-12-01 09:36:07','/images/achievements/first_post.png'),(2,'TEN_POSTS','하이라이트 수집가','하이라이트 클립을 10개 이상 업로드했습니다.','{\"metric\":\"posts_created\",\"op\":\">=\",\"value\":10,\"exp_reward\":150}','2025-12-01 09:36:07','/images/achievements/ten_posts.png'),(3,'FIFTY_POSTS','진정한 클립 장인','하이라이트 클립을 50개 이상 업로드했습니다.','{\"metric\":\"posts_created\",\"op\":\">=\",\"value\":50,\"exp_reward\":500}','2025-12-01 09:36:07','/images/achievements/fifty_posts.png'),(4,'FIRST_LIKE_RECEIVED','첫 좋아요','내 클립에 처음으로 좋아요를 받았습니다.','{\"metric\":\"total_likes_received\",\"op\":\">=\",\"value\":1,\"exp_reward\":50}','2025-12-01 09:36:07','/images/achievements/first_like.png'),(5,'TEN_LIKES_ONE_POST','인기 클립','단일 클립에서 좋아요 10개 이상을 받았습니다.','{\"metric\":\"max_likes_on_single_post\",\"op\":\">=\",\"value\":10,\"exp_reward\":200}','2025-12-01 09:36:07','/images/achievements/ten_likes_one_post.png'),(6,'HUNDRED_LIKES_TOTAL','좋아요 수집가','모든 클립을 합쳐 좋아요 100개 이상을 받았습니다.','{\"metric\":\"total_likes_received\",\"op\":\">=\",\"value\":100,\"exp_reward\":500}','2025-12-01 09:36:07','/images/achievements/hundred_likes_total.png'),(7,'FIRST_COMMENT_WRITTEN','첫 댓글','다른 유저의 클립에 처음으로 댓글을 남겼습니다.','{\"metric\":\"comments_written\",\"op\":\">=\",\"value\":1,\"exp_reward\":30}','2025-12-01 09:36:07','/images/achievements/first_comment_written.png'),(8,'TWENTY_COMMENTS_WRITTEN','활발한 댓글러','다른 유저의 클립에 댓글을 20개 이상 남겼습니다.','{\"metric\":\"comments_written\",\"op\":\">=\",\"value\":20,\"exp_reward\":150}','2025-12-01 09:36:07','/images/achievements/twenty_comments_written.png'),(9,'FIRST_COMMENT_RECEIVED','첫 피드백','내 클립에 첫 댓글을 받았습니다.','{\"metric\":\"comments_received\",\"op\":\">=\",\"value\":1,\"exp_reward\":50}','2025-12-01 09:36:07','/images/achievements/first_comment_received.png'),(10,'THREE_GAMES_POSTED','멀티 게이머','서로 다른 게임 3개 이상에서 클립을 업로드했습니다.','{\"metric\":\"games_posted_distinct\",\"op\":\">=\",\"value\":3,\"exp_reward\":150}','2025-12-01 09:36:07','/images/achievements/three_games_posted.png'),(11,'TEN_GAMES_POSTED','장르 파괴자','서로 다른 게임 10개 이상에서 클립을 업로드했습니다.','{\"metric\":\"games_posted_distinct\",\"op\":\">=\",\"value\":10,\"exp_reward\":400}','2025-12-01 09:36:07','/images/achievements/ten_games_posted.png'),(12,'FIVE_TAGS_USED','태그 입문자','서로 다른 해시태그 5개 이상을 사용했습니다.','{\"metric\":\"tags_used_distinct\",\"op\":\">=\",\"value\":5,\"exp_reward\":80}','2025-12-01 09:36:07','/images/achievements/five_tags_used.png'),(13,'TWENTY_TAGS_USED','태그 마스터','서로 다른 해시태그 20개 이상을 사용했습니다.','{\"metric\":\"tags_used_distinct\",\"op\":\">=\",\"value\":20,\"exp_reward\":250}','2025-12-01 09:36:07','/images/achievements/twenty_tags_used.png'),(14,'TEN_FOLLOWERS','작은 팬덤','팔로워가 10명 이상이 되었습니다.','{\"metric\":\"followers_count\",\"op\":\">=\",\"value\":10,\"exp_reward\":150}','2025-12-01 09:36:07','/images/achievements/ten_followers.png'),(15,'FIFTY_FOLLOWERS','인기 스트리머 꿈나무','팔로워가 50명 이상이 되었습니다.','{\"metric\":\"followers_count\",\"op\":\">=\",\"value\":50,\"exp_reward\":400}','2025-12-01 09:36:07','/images/achievements/fifty_followers.png'),(16,'THREE_DAYS_STREAK','3일 연속 하이라이트','3일 연속으로 클립을 업로드했습니다.','{\"metric\":\"daily_post_streak\",\"op\":\">=\",\"value\":3,\"exp_reward\":200}','2025-12-01 09:36:07','/images/achievements/three_days_streak.png'),(17,'SEVEN_DAYS_STREAK','일주일 연속 하이라이트','7일 연속으로 클립을 업로드했습니다.','{\"metric\":\"daily_post_streak\",\"op\":\">=\",\"value\":7,\"exp_reward\":500}','2025-12-01 09:36:07','/images/achievements/seven_days_streak.png'),(18,'FIRST_MENTION','첫 멘션','다른 유저를 처음으로 멘션했습니다.',NULL,'2025-12-02 10:51:15','/images/achievements/first_mention.png'),(19,'FIRST_MENTIONED','첫 멘션 당함','다른 유저가 당신을 댓글에서 처음으로 멘션했습니다.',NULL,'2025-12-02 10:51:15','/images/achievements/first_mentioned.png');
 /*!40000 ALTER TABLE `achievements` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -63,7 +63,7 @@ CREATE TABLE `chat_message` (
   KEY `idx_room_created` (`room_id`,`created_at`),
   CONSTRAINT `fk_chat_message_room` FOREIGN KEY (`room_id`) REFERENCES `chat_room` (`id`),
   CONSTRAINT `fk_chat_message_user` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -72,7 +72,7 @@ CREATE TABLE `chat_message` (
 
 LOCK TABLES `chat_message` WRITE;
 /*!40000 ALTER TABLE `chat_message` DISABLE KEYS */;
-INSERT INTO `chat_message` VALUES (1,1,2,'롤 채팅방 111','2025-11-25 16:32:13'),(2,1,1,'롤 채팅방 222','2025-11-25 16:32:38'),(3,3,1,'ㅁㄴㅇㅁㄴㅇ','2025-11-25 16:33:43'),(4,3,2,'aaa','2025-11-25 16:33:59'),(5,2,2,'오버워치 채팅방 111','2025-11-25 18:02:02'),(6,5,2,'발로란트 채팅방 111','2025-11-25 18:02:08'),(7,1,2,'롤 채팅방 333333','2025-11-25 18:02:14'),(8,6,2,'알림11111','2025-11-25 18:02:27'),(9,6,2,'22222','2025-11-25 18:02:29'),(10,6,2,'33333333','2025-11-25 18:02:31'),(11,1,3,'aaa','2025-11-25 18:02:46'),(12,1,3,'zz','2025-11-25 18:04:48'),(13,1,3,'111','2025-11-25 18:04:56'),(14,2,3,'123','2025-11-25 18:05:17'),(15,2,3,'222','2025-11-25 18:05:25'),(16,2,3,'33434','2025-11-25 18:05:31'),(17,5,3,'2525','2025-11-25 18:05:37'),(18,5,3,'2424','2025-11-25 18:05:43'),(19,1,3,'2233','2025-11-25 18:05:52'),(20,6,3,'444','2025-11-25 18:06:16'),(21,6,2,'555','2025-11-25 18:06:27'),(22,6,2,'safsf','2025-11-25 18:06:32'),(23,5,2,'215251','2025-11-25 18:06:38'),(24,5,2,'5555','2025-11-25 18:07:08'),(25,6,2,'55555','2025-11-25 18:07:31'),(26,1,2,'dddd','2025-11-25 18:07:46'),(27,6,2,'ㅇㅇㅇㅇ','2025-11-25 18:08:53'),(28,6,3,'ㅇㅇㅇㅇ','2025-11-25 18:08:57'),(29,1,2,'ㄱㄱㄱㄱ','2025-11-25 18:09:06'),(30,1,2,'ㅇㅇㅇ','2025-11-25 18:12:51'),(31,2,2,'ㅁㅁㅁ','2025-11-25 18:12:56'),(32,5,2,'ㅇㅇㅇㅇ','2025-11-25 18:12:59'),(33,5,2,'ㅇㅇㅇ','2025-11-25 18:13:09'),(34,3,2,'222','2025-11-25 18:13:20'),(35,3,2,'2424','2025-11-25 18:13:24'),(36,5,2,'ㅁㅁㅁ','2025-11-25 18:13:28'),(37,4,1,'ㅁㅁㅁ','2025-11-25 18:15:35'),(38,6,2,'ㅋㅋㅋㅋ','2025-11-25 18:19:27'),(39,1,3,'zz','2025-11-26 12:38:07'),(40,1,3,'dd','2025-11-26 12:38:14'),(41,6,3,'ㅈㅈㅈㅈ','2025-11-26 12:38:25'),(42,6,2,'1111','2025-11-26 13:15:21'),(43,6,3,'ㅇㅇㅇㅇ','2025-11-26 16:58:57'),(44,6,3,'2222','2025-11-26 16:59:03'),(45,6,3,'4444','2025-11-26 16:59:23'),(46,6,2,'11','2025-11-26 17:03:06'),(47,6,3,'22','2025-11-26 17:03:09'),(48,6,3,'ㅁㅁ','2025-11-26 17:03:59'),(49,6,3,'ㅇㅇㅇ','2025-11-26 17:14:07'),(50,6,3,'ㅁㄴㅇ','2025-11-26 17:14:08'),(51,6,3,'ㅂㅈㄷ','2025-11-26 17:14:09'),(52,6,3,'ㅁㄴㅇ','2025-11-26 17:14:26'),(53,6,3,'ㅈㅂㄱ','2025-11-26 17:14:31'),(54,6,3,'ㅁㄴㅇ','2025-11-26 17:54:18'),(55,1,3,'222','2025-11-26 17:54:24'),(56,1,1,'ㅁㅁㅁ','2025-11-27 16:39:43'),(57,3,2,'111','2025-11-27 16:40:21'),(58,1,2,'222','2025-11-27 17:41:16'),(59,1,1,'123','2025-12-01 14:54:11'),(60,3,1,'222','2025-12-01 14:54:22'),(61,2,2,'123','2025-12-01 14:55:32'),(62,3,1,'333','2025-12-01 16:49:39');
+INSERT INTO `chat_message` VALUES (1,1,2,'롤 채팅방 111','2025-11-25 16:32:13'),(2,1,1,'롤 채팅방 222','2025-11-25 16:32:38'),(3,3,1,'ㅁㄴㅇㅁㄴㅇ','2025-11-25 16:33:43'),(4,3,2,'aaa','2025-11-25 16:33:59'),(5,2,2,'오버워치 채팅방 111','2025-11-25 18:02:02'),(6,5,2,'발로란트 채팅방 111','2025-11-25 18:02:08'),(7,1,2,'롤 채팅방 333333','2025-11-25 18:02:14'),(8,6,2,'알림11111','2025-11-25 18:02:27'),(9,6,2,'22222','2025-11-25 18:02:29'),(10,6,2,'33333333','2025-11-25 18:02:31'),(11,1,3,'aaa','2025-11-25 18:02:46'),(12,1,3,'zz','2025-11-25 18:04:48'),(13,1,3,'111','2025-11-25 18:04:56'),(14,2,3,'123','2025-11-25 18:05:17'),(15,2,3,'222','2025-11-25 18:05:25'),(16,2,3,'33434','2025-11-25 18:05:31'),(17,5,3,'2525','2025-11-25 18:05:37'),(18,5,3,'2424','2025-11-25 18:05:43'),(19,1,3,'2233','2025-11-25 18:05:52'),(20,6,3,'444','2025-11-25 18:06:16'),(21,6,2,'555','2025-11-25 18:06:27'),(22,6,2,'safsf','2025-11-25 18:06:32'),(23,5,2,'215251','2025-11-25 18:06:38'),(24,5,2,'5555','2025-11-25 18:07:08'),(25,6,2,'55555','2025-11-25 18:07:31'),(26,1,2,'dddd','2025-11-25 18:07:46'),(27,6,2,'ㅇㅇㅇㅇ','2025-11-25 18:08:53'),(28,6,3,'ㅇㅇㅇㅇ','2025-11-25 18:08:57'),(29,1,2,'ㄱㄱㄱㄱ','2025-11-25 18:09:06'),(30,1,2,'ㅇㅇㅇ','2025-11-25 18:12:51'),(31,2,2,'ㅁㅁㅁ','2025-11-25 18:12:56'),(32,5,2,'ㅇㅇㅇㅇ','2025-11-25 18:12:59'),(33,5,2,'ㅇㅇㅇ','2025-11-25 18:13:09'),(34,3,2,'222','2025-11-25 18:13:20'),(35,3,2,'2424','2025-11-25 18:13:24'),(36,5,2,'ㅁㅁㅁ','2025-11-25 18:13:28'),(37,4,1,'ㅁㅁㅁ','2025-11-25 18:15:35'),(38,6,2,'ㅋㅋㅋㅋ','2025-11-25 18:19:27'),(39,1,3,'zz','2025-11-26 12:38:07'),(40,1,3,'dd','2025-11-26 12:38:14'),(41,6,3,'ㅈㅈㅈㅈ','2025-11-26 12:38:25'),(42,6,2,'1111','2025-11-26 13:15:21'),(43,6,3,'ㅇㅇㅇㅇ','2025-11-26 16:58:57'),(44,6,3,'2222','2025-11-26 16:59:03'),(45,6,3,'4444','2025-11-26 16:59:23'),(46,6,2,'11','2025-11-26 17:03:06'),(47,6,3,'22','2025-11-26 17:03:09'),(48,6,3,'ㅁㅁ','2025-11-26 17:03:59'),(49,6,3,'ㅇㅇㅇ','2025-11-26 17:14:07'),(50,6,3,'ㅁㄴㅇ','2025-11-26 17:14:08'),(51,6,3,'ㅂㅈㄷ','2025-11-26 17:14:09'),(52,6,3,'ㅁㄴㅇ','2025-11-26 17:14:26'),(53,6,3,'ㅈㅂㄱ','2025-11-26 17:14:31'),(54,6,3,'ㅁㄴㅇ','2025-11-26 17:54:18'),(55,1,3,'222','2025-11-26 17:54:24'),(56,1,1,'ㅁㅁㅁ','2025-11-27 16:39:43'),(57,3,2,'111','2025-11-27 16:40:21'),(58,1,2,'222','2025-11-27 17:41:16'),(59,1,1,'123','2025-12-01 14:54:11'),(60,3,1,'222','2025-12-01 14:54:22'),(61,2,2,'123','2025-12-01 14:55:32'),(62,3,1,'333','2025-12-01 16:49:39'),(63,3,2,'2323','2025-12-01 18:17:39'),(64,1,4,'22','2025-12-02 15:20:08'),(65,7,4,'123','2025-12-02 15:21:04'),(66,1,4,'11','2025-12-02 15:22:10'),(67,1,4,'223','2025-12-02 15:29:29'),(68,1,4,'454','2025-12-02 15:29:41'),(69,7,4,'252','2025-12-02 15:29:55'),(70,1,4,'656','2025-12-02 15:33:15'),(71,7,4,'111','2025-12-02 15:33:28');
 /*!40000 ALTER TABLE `chat_message` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -100,7 +100,7 @@ CREATE TABLE `chat_read` (
 
 LOCK TABLES `chat_read` WRITE;
 /*!40000 ALTER TABLE `chat_read` DISABLE KEYS */;
-INSERT INTO `chat_read` VALUES (1,1,'2025-12-01 14:54:11'),(1,2,'2025-12-01 14:53:18'),(1,3,'2025-11-26 17:54:24'),(2,1,'2025-11-27 15:12:38'),(2,2,'2025-12-01 14:55:32'),(2,3,'2025-11-25 18:05:31'),(3,1,'2025-12-01 16:49:39'),(3,2,'2025-12-01 14:55:06'),(4,1,'2025-11-25 18:15:56'),(5,1,'2025-11-25 18:15:51'),(5,2,'2025-11-26 17:10:09'),(5,3,'2025-11-25 18:07:47'),(6,2,'2025-11-27 17:55:06'),(6,3,'2025-11-26 17:54:18');
+INSERT INTO `chat_read` VALUES (1,1,'2025-12-01 14:54:11'),(1,2,'2025-12-02 15:33:20'),(1,3,'2025-11-26 17:54:24'),(1,4,'2025-12-02 15:33:15'),(2,1,'2025-11-27 15:12:38'),(2,2,'2025-12-01 14:55:32'),(2,3,'2025-11-25 18:05:31'),(3,1,'2025-12-01 16:49:39'),(3,2,'2025-12-01 18:17:39'),(4,1,'2025-11-25 18:15:56'),(5,1,'2025-11-25 18:15:51'),(5,2,'2025-11-26 17:10:09'),(5,3,'2025-11-25 18:07:47'),(6,2,'2025-11-27 17:55:06'),(6,3,'2025-11-26 17:54:18'),(7,2,'2025-12-02 15:33:30'),(7,4,'2025-12-02 15:33:28');
 /*!40000 ALTER TABLE `chat_read` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -120,7 +120,7 @@ CREATE TABLE `chat_room` (
   PRIMARY KEY (`id`),
   KEY `fk_chat_room_game` (`game_id`),
   CONSTRAINT `fk_chat_room_game` FOREIGN KEY (`game_id`) REFERENCES `games` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -129,7 +129,7 @@ CREATE TABLE `chat_room` (
 
 LOCK TABLES `chat_room` WRITE;
 /*!40000 ALTER TABLE `chat_room` DISABLE KEYS */;
-INSERT INTO `chat_room` VALUES (1,'GAME',1,'2025-11-25 16:32:06','2025-11-25 16:32:06'),(2,'GAME',3,'2025-11-25 16:32:48','2025-11-25 16:32:48'),(3,'DM',NULL,'2025-11-25 16:33:04','2025-11-25 16:33:04'),(4,'DM',NULL,'2025-11-25 17:09:57','2025-11-25 17:09:57'),(5,'GAME',2,'2025-11-25 17:15:34','2025-11-25 17:15:34'),(6,'DM',NULL,'2025-11-25 17:54:29','2025-11-25 17:54:29');
+INSERT INTO `chat_room` VALUES (1,'GAME',1,'2025-11-25 16:32:06','2025-11-25 16:32:06'),(2,'GAME',3,'2025-11-25 16:32:48','2025-11-25 16:32:48'),(3,'DM',NULL,'2025-11-25 16:33:04','2025-11-25 16:33:04'),(4,'DM',NULL,'2025-11-25 17:09:57','2025-11-25 17:09:57'),(5,'GAME',2,'2025-11-25 17:15:34','2025-11-25 17:15:34'),(6,'DM',NULL,'2025-11-25 17:54:29','2025-11-25 17:54:29'),(7,'DM',NULL,'2025-12-02 15:21:01','2025-12-02 15:21:01');
 /*!40000 ALTER TABLE `chat_room` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -157,8 +157,36 @@ CREATE TABLE `chat_room_user` (
 
 LOCK TABLES `chat_room_user` WRITE;
 /*!40000 ALTER TABLE `chat_room_user` DISABLE KEYS */;
-INSERT INTO `chat_room_user` VALUES (1,1,'2025-11-25 18:13:37'),(1,2,'2025-11-25 18:01:51'),(1,3,'2025-11-25 18:02:43'),(2,1,'2025-11-25 18:13:35'),(2,2,'2025-11-25 18:01:58'),(2,3,'2025-11-25 18:05:15'),(3,1,'2025-11-25 16:33:04'),(3,2,'2025-11-25 16:33:04'),(4,1,'2025-11-25 17:09:57'),(4,3,'2025-11-25 17:09:57'),(5,1,'2025-11-25 18:13:03'),(5,2,'2025-11-25 18:02:04'),(5,3,'2025-11-25 18:05:35'),(6,2,'2025-11-25 17:54:29'),(6,3,'2025-11-25 17:54:29');
+INSERT INTO `chat_room_user` VALUES (1,1,'2025-11-25 18:13:37'),(1,2,'2025-11-25 18:01:51'),(1,3,'2025-11-25 18:02:43'),(1,4,'2025-12-02 15:20:06'),(2,1,'2025-11-25 18:13:35'),(2,2,'2025-11-25 18:01:58'),(2,3,'2025-11-25 18:05:15'),(3,1,'2025-11-25 16:33:04'),(3,2,'2025-11-25 16:33:04'),(4,1,'2025-11-25 17:09:57'),(4,3,'2025-11-25 17:09:57'),(5,1,'2025-11-25 18:13:03'),(5,2,'2025-11-25 18:02:04'),(5,3,'2025-11-25 18:05:35'),(6,2,'2025-11-25 17:54:29'),(6,3,'2025-11-25 17:54:29'),(7,2,'2025-12-02 15:21:01'),(7,4,'2025-12-02 15:21:01');
 /*!40000 ALTER TABLE `chat_room_user` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `comment_likes`
+--
+
+DROP TABLE IF EXISTS `comment_likes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `comment_likes` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `comment_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_comment_user` (`comment_id`,`user_id`),
+  KEY `idx_comment_likes_comment` (`comment_id`),
+  KEY `idx_comment_likes_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `comment_likes`
+--
+
+LOCK TABLES `comment_likes` WRITE;
+/*!40000 ALTER TABLE `comment_likes` DISABLE KEYS */;
+/*!40000 ALTER TABLE `comment_likes` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -185,7 +213,7 @@ CREATE TABLE `follows` (
 
 LOCK TABLES `follows` WRITE;
 /*!40000 ALTER TABLE `follows` DISABLE KEYS */;
-INSERT INTO `follows` VALUES (1,2,'2025-11-27 14:55:30'),(2,1,'2025-12-01 09:22:14'),(2,3,'2025-11-27 17:28:59'),(3,2,'2025-11-26 12:54:27');
+INSERT INTO `follows` VALUES (1,2,'2025-11-27 14:55:30'),(2,1,'2025-12-02 16:43:20'),(2,3,'2025-11-27 17:28:59'),(3,2,'2025-11-26 12:54:27');
 /*!40000 ALTER TABLE `follows` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -240,7 +268,7 @@ CREATE TABLE `notifications` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=91 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -249,7 +277,7 @@ CREATE TABLE `notifications` (
 
 LOCK TABLES `notifications` WRITE;
 /*!40000 ALTER TABLE `notifications` DISABLE KEYS */;
-INSERT INTO `notifications` VALUES (1,1,'CHAT_MESSAGE',3,NULL,1,'zz',1,'2025-11-26 12:38:07'),(2,2,'CHAT_MESSAGE',3,NULL,1,'zz',1,'2025-11-26 12:38:07'),(3,1,'CHAT_MESSAGE',3,NULL,1,'dd',1,'2025-11-26 12:38:14'),(4,2,'CHAT_MESSAGE',3,NULL,1,'dd',1,'2025-11-26 12:38:14'),(5,2,'CHAT_MESSAGE',3,NULL,6,'ㅈㅈㅈㅈ',1,'2025-11-26 12:38:25'),(6,3,'FOLLOWED_USER_POST',2,12,NULL,'www',1,'2025-11-26 12:53:12'),(7,3,'CHAT_MESSAGE',2,NULL,6,'1111',1,'2025-11-26 13:15:21'),(8,2,'CHAT_MESSAGE',3,NULL,6,'ㅇㅇㅇㅇ',1,'2025-11-26 16:58:57'),(9,2,'CHAT_MESSAGE',3,NULL,6,'2222',1,'2025-11-26 16:59:03'),(10,2,'CHAT_MESSAGE',3,NULL,6,'4444',1,'2025-11-26 16:59:23'),(11,3,'CHAT_MESSAGE',2,NULL,6,'11',0,'2025-11-26 17:03:06'),(12,2,'CHAT_MESSAGE',3,NULL,6,'22',1,'2025-11-26 17:03:09'),(13,2,'CHAT_MESSAGE',3,NULL,6,'ㅁㅁ',1,'2025-11-26 17:03:59'),(14,2,'CHAT_MESSAGE',3,NULL,6,'ㅇㅇㅇ',1,'2025-11-26 17:14:07'),(15,2,'CHAT_MESSAGE',3,NULL,6,'ㅁㄴㅇ',1,'2025-11-26 17:14:08'),(16,2,'CHAT_MESSAGE',3,NULL,6,'ㅂㅈㄷ',1,'2025-11-26 17:14:09'),(17,2,'CHAT_MESSAGE',3,NULL,6,'ㅁㄴㅇ',1,'2025-11-26 17:14:26'),(18,2,'CHAT_MESSAGE',3,NULL,6,'ㅈㅂㄱ',1,'2025-11-26 17:14:31'),(19,2,'CHAT_MESSAGE',3,NULL,6,'ㅁㄴㅇ',1,'2025-11-26 17:54:18'),(20,1,'CHAT_MESSAGE',3,NULL,1,'222',1,'2025-11-26 17:54:24'),(21,2,'CHAT_MESSAGE',3,NULL,1,'222',1,'2025-11-26 17:54:24'),(22,2,'CHAT_MESSAGE',1,NULL,1,'ㅁㅁㅁ',1,'2025-11-27 16:39:43'),(23,3,'CHAT_MESSAGE',1,NULL,1,'ㅁㅁㅁ',0,'2025-11-27 16:39:43'),(24,1,'CHAT_MESSAGE',2,NULL,3,'111',1,'2025-11-27 16:40:21'),(25,1,'CHAT_MESSAGE',2,NULL,1,'222',1,'2025-11-27 17:41:16'),(26,3,'CHAT_MESSAGE',2,NULL,1,'222',0,'2025-11-27 17:41:16'),(27,1,'FOLLOWED_USER_POST',2,15,NULL,'aa',1,'2025-11-28 10:13:13'),(28,3,'FOLLOWED_USER_POST',2,15,NULL,'aa',0,'2025-11-28 10:13:13'),(29,1,'FOLLOWED_USER_POST',2,17,NULL,'생존자 하이라이트 #데바데',1,'2025-11-28 13:15:25'),(30,3,'FOLLOWED_USER_POST',2,17,NULL,'생존자 하이라이트 #데바데',0,'2025-11-28 13:15:25'),(31,1,'FOLLOWED_USER_POST',2,18,NULL,'발헤임 재밌다 #발헤임',1,'2025-11-28 13:29:35'),(32,3,'FOLLOWED_USER_POST',2,18,NULL,'발헤임 재밌다 #발헤임',0,'2025-11-28 13:29:35'),(33,1,'FOLLOWED_USER_POST',2,19,NULL,'협동게임 꿀잼 #wewerehere',1,'2025-11-28 14:19:47'),(34,3,'FOLLOWED_USER_POST',2,19,NULL,'협동게임 꿀잼 #wewerehere',0,'2025-11-28 14:19:47'),(35,1,'FOLLOWED_USER_POST',2,20,NULL,'협동게임 꿀잼 #wewerehere',1,'2025-11-28 14:21:17'),(36,3,'FOLLOWED_USER_POST',2,20,NULL,'협동게임 꿀잼 #wewerehere',0,'2025-11-28 14:21:17'),(37,1,'FOLLOWED_USER_POST',2,21,NULL,'협동게임 꿀잼 #wewerehere',1,'2025-11-28 14:27:01'),(38,3,'FOLLOWED_USER_POST',2,21,NULL,'협동게임 꿀잼 #wewerehere',0,'2025-11-28 14:27:01'),(39,1,'FOLLOWED_USER_POST',2,22,NULL,'재밌는 다잉라이트 #dyingLight',1,'2025-11-28 16:32:24'),(40,3,'FOLLOWED_USER_POST',2,22,NULL,'재밌는 다잉라이트 #dyingLight',0,'2025-11-28 16:32:24'),(41,1,'FOLLOWED_USER_POST',2,23,NULL,'재밌는 협동게임 #잇테이크투',1,'2025-11-28 16:49:55'),(42,3,'FOLLOWED_USER_POST',2,23,NULL,'재밌는 협동게임 #잇테이크투',0,'2025-11-28 16:49:55'),(43,1,'FOLLOWED_USER_POST',2,24,NULL,'몬헌 꿀잼 #몬스터헌터',1,'2025-12-01 10:23:03'),(44,3,'FOLLOWED_USER_POST',2,24,NULL,'몬헌 꿀잼 #몬스터헌터',0,'2025-12-01 10:23:03'),(45,1,'FOLLOWED_USER_POST',2,25,NULL,'데바데 #deadbydaylight',1,'2025-12-01 12:00:20'),(46,3,'FOLLOWED_USER_POST',2,25,NULL,'데바데 #deadbydaylight',0,'2025-12-01 12:00:20'),(47,1,'FOLLOWED_USER_POST',2,26,NULL,'aa',1,'2025-12-01 12:35:02'),(48,3,'FOLLOWED_USER_POST',2,26,NULL,'aa',0,'2025-12-01 12:35:02'),(49,1,'FOLLOWED_USER_POST',2,27,NULL,'aa',1,'2025-12-01 14:44:01'),(50,3,'FOLLOWED_USER_POST',2,27,NULL,'aa',0,'2025-12-01 14:44:01'),(51,2,'CHAT_MESSAGE',1,NULL,1,'123',1,'2025-12-01 14:54:11'),(52,3,'CHAT_MESSAGE',1,NULL,1,'123',0,'2025-12-01 14:54:11'),(53,2,'CHAT_MESSAGE',1,NULL,3,'222',1,'2025-12-01 14:54:22'),(54,1,'CHAT_MESSAGE',2,NULL,2,'123',1,'2025-12-01 14:55:32'),(55,3,'CHAT_MESSAGE',2,NULL,2,'123',0,'2025-12-01 14:55:32'),(56,2,'FOLLOWED_USER_POST',1,28,NULL,'발로란트 #valorant',1,'2025-12-01 14:58:45'),(57,2,'CHAT_MESSAGE',1,NULL,3,'333',1,'2025-12-01 16:49:39');
+INSERT INTO `notifications` VALUES (1,1,'CHAT_MESSAGE',3,NULL,1,'zz',1,'2025-11-26 12:38:07'),(2,2,'CHAT_MESSAGE',3,NULL,1,'zz',1,'2025-11-26 12:38:07'),(3,1,'CHAT_MESSAGE',3,NULL,1,'dd',1,'2025-11-26 12:38:14'),(4,2,'CHAT_MESSAGE',3,NULL,1,'dd',1,'2025-11-26 12:38:14'),(5,2,'CHAT_MESSAGE',3,NULL,6,'ㅈㅈㅈㅈ',1,'2025-11-26 12:38:25'),(6,3,'FOLLOWED_USER_POST',2,12,NULL,'www',1,'2025-11-26 12:53:12'),(7,3,'CHAT_MESSAGE',2,NULL,6,'1111',1,'2025-11-26 13:15:21'),(8,2,'CHAT_MESSAGE',3,NULL,6,'ㅇㅇㅇㅇ',1,'2025-11-26 16:58:57'),(9,2,'CHAT_MESSAGE',3,NULL,6,'2222',1,'2025-11-26 16:59:03'),(10,2,'CHAT_MESSAGE',3,NULL,6,'4444',1,'2025-11-26 16:59:23'),(11,3,'CHAT_MESSAGE',2,NULL,6,'11',1,'2025-11-26 17:03:06'),(12,2,'CHAT_MESSAGE',3,NULL,6,'22',1,'2025-11-26 17:03:09'),(13,2,'CHAT_MESSAGE',3,NULL,6,'ㅁㅁ',1,'2025-11-26 17:03:59'),(14,2,'CHAT_MESSAGE',3,NULL,6,'ㅇㅇㅇ',1,'2025-11-26 17:14:07'),(15,2,'CHAT_MESSAGE',3,NULL,6,'ㅁㄴㅇ',1,'2025-11-26 17:14:08'),(16,2,'CHAT_MESSAGE',3,NULL,6,'ㅂㅈㄷ',1,'2025-11-26 17:14:09'),(17,2,'CHAT_MESSAGE',3,NULL,6,'ㅁㄴㅇ',1,'2025-11-26 17:14:26'),(18,2,'CHAT_MESSAGE',3,NULL,6,'ㅈㅂㄱ',1,'2025-11-26 17:14:31'),(19,2,'CHAT_MESSAGE',3,NULL,6,'ㅁㄴㅇ',1,'2025-11-26 17:54:18'),(20,1,'CHAT_MESSAGE',3,NULL,1,'222',1,'2025-11-26 17:54:24'),(21,2,'CHAT_MESSAGE',3,NULL,1,'222',1,'2025-11-26 17:54:24'),(22,2,'CHAT_MESSAGE',1,NULL,1,'ㅁㅁㅁ',1,'2025-11-27 16:39:43'),(23,3,'CHAT_MESSAGE',1,NULL,1,'ㅁㅁㅁ',1,'2025-11-27 16:39:43'),(24,1,'CHAT_MESSAGE',2,NULL,3,'111',1,'2025-11-27 16:40:21'),(25,1,'CHAT_MESSAGE',2,NULL,1,'222',1,'2025-11-27 17:41:16'),(26,3,'CHAT_MESSAGE',2,NULL,1,'222',1,'2025-11-27 17:41:16'),(27,1,'FOLLOWED_USER_POST',2,15,NULL,'aa',1,'2025-11-28 10:13:13'),(28,3,'FOLLOWED_USER_POST',2,15,NULL,'aa',1,'2025-11-28 10:13:13'),(29,1,'FOLLOWED_USER_POST',2,17,NULL,'생존자 하이라이트 #데바데',1,'2025-11-28 13:15:25'),(30,3,'FOLLOWED_USER_POST',2,17,NULL,'생존자 하이라이트 #데바데',1,'2025-11-28 13:15:25'),(31,1,'FOLLOWED_USER_POST',2,18,NULL,'발헤임 재밌다 #발헤임',1,'2025-11-28 13:29:35'),(32,3,'FOLLOWED_USER_POST',2,18,NULL,'발헤임 재밌다 #발헤임',1,'2025-11-28 13:29:35'),(33,1,'FOLLOWED_USER_POST',2,19,NULL,'협동게임 꿀잼 #wewerehere',1,'2025-11-28 14:19:47'),(34,3,'FOLLOWED_USER_POST',2,19,NULL,'협동게임 꿀잼 #wewerehere',1,'2025-11-28 14:19:47'),(35,1,'FOLLOWED_USER_POST',2,20,NULL,'협동게임 꿀잼 #wewerehere',1,'2025-11-28 14:21:17'),(36,3,'FOLLOWED_USER_POST',2,20,NULL,'협동게임 꿀잼 #wewerehere',1,'2025-11-28 14:21:17'),(37,1,'FOLLOWED_USER_POST',2,21,NULL,'협동게임 꿀잼 #wewerehere',1,'2025-11-28 14:27:01'),(38,3,'FOLLOWED_USER_POST',2,21,NULL,'협동게임 꿀잼 #wewerehere',1,'2025-11-28 14:27:01'),(39,1,'FOLLOWED_USER_POST',2,22,NULL,'재밌는 다잉라이트 #dyingLight',1,'2025-11-28 16:32:24'),(40,3,'FOLLOWED_USER_POST',2,22,NULL,'재밌는 다잉라이트 #dyingLight',1,'2025-11-28 16:32:24'),(41,1,'FOLLOWED_USER_POST',2,23,NULL,'재밌는 협동게임 #잇테이크투',1,'2025-11-28 16:49:55'),(42,3,'FOLLOWED_USER_POST',2,23,NULL,'재밌는 협동게임 #잇테이크투',1,'2025-11-28 16:49:55'),(43,1,'FOLLOWED_USER_POST',2,24,NULL,'몬헌 꿀잼 #몬스터헌터',1,'2025-12-01 10:23:03'),(44,3,'FOLLOWED_USER_POST',2,24,NULL,'몬헌 꿀잼 #몬스터헌터',1,'2025-12-01 10:23:03'),(45,1,'FOLLOWED_USER_POST',2,25,NULL,'데바데 #deadbydaylight',1,'2025-12-01 12:00:20'),(46,3,'FOLLOWED_USER_POST',2,25,NULL,'데바데 #deadbydaylight',1,'2025-12-01 12:00:20'),(47,1,'FOLLOWED_USER_POST',2,26,NULL,'aa',1,'2025-12-01 12:35:02'),(48,3,'FOLLOWED_USER_POST',2,26,NULL,'aa',1,'2025-12-01 12:35:02'),(49,1,'FOLLOWED_USER_POST',2,27,NULL,'aa',1,'2025-12-01 14:44:01'),(50,3,'FOLLOWED_USER_POST',2,27,NULL,'aa',1,'2025-12-01 14:44:01'),(51,2,'CHAT_MESSAGE',1,NULL,1,'123',1,'2025-12-01 14:54:11'),(52,3,'CHAT_MESSAGE',1,NULL,1,'123',1,'2025-12-01 14:54:11'),(53,2,'CHAT_MESSAGE',1,NULL,3,'222',1,'2025-12-01 14:54:22'),(54,1,'CHAT_MESSAGE',2,NULL,2,'123',1,'2025-12-01 14:55:32'),(55,3,'CHAT_MESSAGE',2,NULL,2,'123',1,'2025-12-01 14:55:32'),(56,2,'FOLLOWED_USER_POST',1,28,NULL,'발로란트 #valorant',1,'2025-12-01 14:58:45'),(57,2,'CHAT_MESSAGE',1,NULL,3,'333',1,'2025-12-01 16:49:39'),(58,1,'CHAT_MESSAGE',2,NULL,3,'2323',1,'2025-12-01 18:17:39'),(59,2,'COMMENT_MENTION',1,28,NULL,'@김성민 대댓글',1,'2025-12-02 12:44:17'),(60,2,'COMMENT_MENTION',1,28,NULL,'@김성민 대댓글2',1,'2025-12-02 12:50:13'),(61,1,'COMMENT_MENTION',2,28,NULL,'@테스트유저 대대댓글1',1,'2025-12-02 12:50:33'),(62,2,'COMMENT_MENTION',1,28,NULL,'@김성민 ㅁㅁ',1,'2025-12-02 12:52:48'),(63,2,'COMMENT_MENTION',1,28,NULL,'@김성민 222',1,'2025-12-02 12:54:44'),(64,1,'COMMENT_MENTION',2,28,NULL,'@테스트유저 22',1,'2025-12-02 12:55:59'),(65,2,'COMMENT_MENTION',1,28,NULL,'@김성민 ㅁㅁㅁ',1,'2025-12-02 13:19:20'),(66,3,'COMMENT_MENTION',2,28,NULL,'@성민김 ㅋㅋ',1,'2025-12-02 13:20:16'),(67,2,'COMMENT_MENTION',4,28,NULL,'@김성민 ㅎㅇ',1,'2025-12-02 14:45:12'),(68,4,'COMMENT_MENTION',2,28,NULL,'@테스트2 ㅎㅇ',1,'2025-12-02 14:45:38'),(69,1,'CHAT_MESSAGE',4,NULL,1,'22',0,'2025-12-02 15:20:08'),(70,2,'CHAT_MESSAGE',4,NULL,1,'22',1,'2025-12-02 15:20:08'),(71,3,'CHAT_MESSAGE',4,NULL,1,'22',0,'2025-12-02 15:20:08'),(72,2,'CHAT_MESSAGE',4,NULL,7,'123',1,'2025-12-02 15:21:04'),(73,1,'CHAT_MESSAGE',4,NULL,1,'11',0,'2025-12-02 15:22:10'),(74,2,'CHAT_MESSAGE',4,NULL,1,'11',1,'2025-12-02 15:22:10'),(75,3,'CHAT_MESSAGE',4,NULL,1,'11',0,'2025-12-02 15:22:10'),(76,1,'CHAT_MESSAGE',4,NULL,1,'223',0,'2025-12-02 15:29:29'),(77,2,'CHAT_MESSAGE',4,NULL,1,'223',1,'2025-12-02 15:29:29'),(78,3,'CHAT_MESSAGE',4,NULL,1,'223',0,'2025-12-02 15:29:29'),(79,1,'CHAT_MESSAGE',4,NULL,1,'454',0,'2025-12-02 15:29:41'),(80,2,'CHAT_MESSAGE',4,NULL,1,'454',1,'2025-12-02 15:29:41'),(81,3,'CHAT_MESSAGE',4,NULL,1,'454',0,'2025-12-02 15:29:41'),(82,2,'CHAT_MESSAGE',4,NULL,7,'252',1,'2025-12-02 15:29:55'),(83,2,'COMMENT_MENTION',4,28,NULL,'@김성민 222',1,'2025-12-02 15:32:44'),(84,1,'CHAT_MESSAGE',4,NULL,1,'656',0,'2025-12-02 15:33:15'),(85,2,'CHAT_MESSAGE',4,NULL,1,'656',1,'2025-12-02 15:33:15'),(86,3,'CHAT_MESSAGE',4,NULL,1,'656',0,'2025-12-02 15:33:15'),(87,2,'CHAT_MESSAGE',4,NULL,7,'111',1,'2025-12-02 15:33:28'),(88,2,'COMMENT_MENTION',4,28,NULL,'@김성민 123',1,'2025-12-02 15:59:34'),(89,2,'COMMENT_MENTION',4,28,NULL,'@seongmin3790 2424',1,'2025-12-02 16:15:53'),(90,4,'COMMENT_MENTION',2,28,NULL,'@test2 5252',1,'2025-12-02 16:31:51');
 /*!40000 ALTER TABLE `notifications` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -271,7 +299,7 @@ CREATE TABLE `post_bookmarks` (
   KEY `idx_post_bookmarks_post` (`post_id`),
   CONSTRAINT `fk_post_bookmarks_post` FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_post_bookmarks_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -280,7 +308,7 @@ CREATE TABLE `post_bookmarks` (
 
 LOCK TABLES `post_bookmarks` WRITE;
 /*!40000 ALTER TABLE `post_bookmarks` DISABLE KEYS */;
-INSERT INTO `post_bookmarks` VALUES (12,9,1,'2025-11-26 09:12:48');
+INSERT INTO `post_bookmarks` VALUES (12,9,1,'2025-11-26 09:12:48'),(17,25,2,'2025-12-01 08:39:46');
 /*!40000 ALTER TABLE `post_bookmarks` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -295,14 +323,17 @@ CREATE TABLE `post_comments` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `post_id` bigint unsigned NOT NULL,
   `user_id` bigint unsigned NOT NULL,
+  `parent_comment_id` bigint DEFAULT NULL,
   `content` text NOT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `fk_post_comments_user` (`user_id`),
   KEY `idx_post_comments_post` (`post_id`,`created_at`),
+  KEY `idx_post_comments_parent` (`parent_comment_id`),
   CONSTRAINT `fk_post_comments_post` FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_post_comments_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -311,7 +342,7 @@ CREATE TABLE `post_comments` (
 
 LOCK TABLES `post_comments` WRITE;
 /*!40000 ALTER TABLE `post_comments` DISABLE KEYS */;
-INSERT INTO `post_comments` VALUES (9,9,1,'zz','2025-11-27 05:57:36'),(11,9,1,'22','2025-11-27 06:01:59'),(15,24,2,'몬헌 재밌다','2025-12-01 01:24:14');
+INSERT INTO `post_comments` VALUES (9,9,1,NULL,'zz','2025-11-27 05:57:36','2025-12-02 01:18:13'),(11,9,1,NULL,'22','2025-11-27 06:01:59','2025-12-02 01:18:13'),(15,24,2,NULL,'몬헌 재밌다','2025-12-01 01:24:14','2025-12-02 01:18:13'),(17,25,2,NULL,'aa','2025-12-01 08:44:58','2025-12-02 01:18:13'),(18,28,2,NULL,'댓글3','2025-12-02 01:02:25','2025-12-02 02:56:19'),(28,28,1,18,'@김성민 ㅁㅁ','2025-12-02 03:52:48','2025-12-02 03:52:48'),(31,28,1,18,'@김성민 ㅁㅁㅁ','2025-12-02 04:19:20','2025-12-02 04:19:20'),(37,28,4,18,'@김성민 123','2025-12-02 06:59:34','2025-12-02 06:59:34'),(39,28,4,18,'@seongmin3790 2424','2025-12-02 07:15:53','2025-12-02 07:15:53'),(40,28,2,39,'@test2 5252','2025-12-02 07:31:51','2025-12-02 07:31:51');
 /*!40000 ALTER TABLE `post_comments` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -332,7 +363,7 @@ CREATE TABLE `post_likes` (
   KEY `idx_likes_user` (`user_id`),
   CONSTRAINT `fk_likes_post` FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_likes_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -341,7 +372,7 @@ CREATE TABLE `post_likes` (
 
 LOCK TABLES `post_likes` WRITE;
 /*!40000 ALTER TABLE `post_likes` DISABLE KEYS */;
-INSERT INTO `post_likes` VALUES (3,6,2,'2025-11-25 03:21:32');
+INSERT INTO `post_likes` VALUES (3,6,2,'2025-11-25 03:21:32'),(32,25,2,'2025-12-01 08:40:23');
 /*!40000 ALTER TABLE `post_likes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -435,7 +466,7 @@ CREATE TABLE `posts` (
 
 LOCK TABLES `posts` WRITE;
 /*!40000 ALTER TABLE `posts` DISABLE KEYS */;
-INSERT INTO `posts` VALUES (6,2,1,'롤 하이라이트',1,0,'2025-11-25 03:00:09'),(7,2,3,'오버워치 하이라이트 #overwatch2',0,0,'2025-11-25 03:06:10'),(9,2,1,'재밌는 롤 #롤',0,2,'2025-11-25 06:04:36'),(21,2,653,'협동게임 꿀잼 #wewerehere',0,0,'2025-11-28 05:27:01'),(22,2,405,'재밌는 다잉라이트 #dyingLight',0,0,'2025-11-28 07:32:24'),(23,2,344,'재밌는 협동게임 #잇테이크투',0,0,'2025-11-28 07:49:55'),(24,2,111,'몬헌 꿀잼꿀잼 #몬스터헌터',0,1,'2025-12-01 01:23:03'),(25,2,299,'데바데 #deadbydaylight',0,0,'2025-12-01 03:00:20'),(28,1,2,'발로란트 #valorant',0,0,'2025-12-01 05:58:45');
+INSERT INTO `posts` VALUES (6,2,1,'롤 하이라이트',1,0,'2025-11-25 03:00:09'),(7,2,3,'오버워치 하이라이트 #overwatch2',0,0,'2025-11-25 03:06:10'),(9,2,1,'재밌는 롤 #롤',0,2,'2025-11-25 06:04:36'),(21,2,653,'협동게임 꿀잼 #wewerehere',0,0,'2025-11-28 05:27:01'),(22,2,405,'재밌는 다잉라이트 #dyingLight',0,0,'2025-11-28 07:32:24'),(23,2,344,'재밌는 협동게임 #잇테이크투',0,0,'2025-11-28 07:49:55'),(24,2,111,'몬헌 꿀잼꿀잼 #몬스터헌터',0,1,'2025-12-01 01:23:03'),(25,2,299,'데바데 #deadbydaylight',1,1,'2025-12-01 03:00:20'),(28,1,2,'발로란트 #valorant',0,6,'2025-12-01 05:58:45');
 /*!40000 ALTER TABLE `posts` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -509,7 +540,7 @@ CREATE TABLE `user_achievements` (
   KEY `achievement_id` (`achievement_id`),
   CONSTRAINT `user_achievements_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `user_achievements_ibfk_2` FOREIGN KEY (`achievement_id`) REFERENCES `achievements` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -518,7 +549,7 @@ CREATE TABLE `user_achievements` (
 
 LOCK TABLES `user_achievements` WRITE;
 /*!40000 ALTER TABLE `user_achievements` DISABLE KEYS */;
-INSERT INTO `user_achievements` VALUES (1,2,1,'2025-12-01 10:23:03'),(2,1,1,'2025-12-01 14:58:45');
+INSERT INTO `user_achievements` VALUES (1,2,1,'2025-12-01 10:23:03'),(2,1,1,'2025-12-01 14:58:45'),(3,1,19,'2025-12-02 13:19:20'),(4,2,19,'2025-12-02 13:19:20'),(5,1,18,'2025-12-02 13:19:20'),(6,3,19,'2025-12-02 13:20:16'),(7,2,18,'2025-12-02 13:20:16'),(8,4,18,'2025-12-02 14:45:12'),(9,4,19,'2025-12-02 14:45:38');
 /*!40000 ALTER TABLE `user_achievements` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -563,6 +594,8 @@ CREATE TABLE `user_stats` (
   `exp` int DEFAULT '0',
   `level` int DEFAULT '1',
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `written_comments` int NOT NULL DEFAULT '0',
+  `mentioned_count` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`user_id`),
   CONSTRAINT `user_stats_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -574,7 +607,7 @@ CREATE TABLE `user_stats` (
 
 LOCK TABLES `user_stats` WRITE;
 /*!40000 ALTER TABLE `user_stats` DISABLE KEYS */;
-INSERT INTO `user_stats` VALUES (1,3,1,4,124,2,'2025-12-01 14:58:45'),(2,12,7,5,319,4,'2025-12-01 14:44:01');
+INSERT INTO `user_stats` VALUES (1,3,1,18,222,3,'2025-12-02 16:31:51',8,2),(2,12,7,5,379,4,'2025-12-02 16:31:51',7,9),(3,0,0,0,31,1,'2025-12-02 13:20:16',0,1),(4,0,0,0,50,1,'2025-12-02 16:31:51',6,2);
 /*!40000 ALTER TABLE `user_stats` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -597,7 +630,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -606,7 +639,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'test@example.com','$2b$10$EFnGLEGX4uclTx1VRRDh4.ukAsU/goBXXeFMxcvgJGGIYrZX9.rSq','testuser','테스트유저','/uploads/avatar/avatar-1-1764138294308.png','','2025-11-24 08:30:12'),(2,'sungmin3790@gmail.com','$2b$10$S9nUYMSDT.ZgAs1k6HcjsOZbpUOYeLaF7Vptpi5bC4LLqcT/fjF0S','seongmin3790','김성민','/uploads/avatar/avatar-2-1764118151005.png','안녕하세요','2025-11-24 08:51:11'),(3,'tjdals3790@naver.com','$2b$10$i11D7ZOjoOrTgpKQTya4T.PFXIZvo3BhJuYJGJYN4EhouS/LvzHFO','tjdals3790','성민김','/uploads/avatar/avatar-3-1764129173901.webp','','2025-11-25 07:59:11');
+INSERT INTO `users` VALUES (1,'test@example.com','$2b$10$EFnGLEGX4uclTx1VRRDh4.ukAsU/goBXXeFMxcvgJGGIYrZX9.rSq','testuser','테스트유저','/uploads/avatar/avatar-1-1764138294308.png','테스트유저입니다','2025-11-24 08:30:12'),(2,'sungmin3790@gmail.com','$2b$10$S9nUYMSDT.ZgAs1k6HcjsOZbpUOYeLaF7Vptpi5bC4LLqcT/fjF0S','seongmin3790','김성민','/uploads/avatar/avatar-2-1764118151005.png','안녕하세요','2025-11-24 08:51:11'),(3,'tjdals3790@naver.com','$2b$10$i11D7ZOjoOrTgpKQTya4T.PFXIZvo3BhJuYJGJYN4EhouS/LvzHFO','tjdals3790','성민김','/uploads/avatar/avatar-3-1764129173901.webp','','2025-11-25 07:59:11'),(4,'test2@test2.com','$2b$10$OOH1UCivTdxSmYDMfKcpP.px2vlXp1sjIuLNSSWM8KddEgWqBQ6Gu','test2','테스트2','/uploads/avatar/avatar-4-1764661860494.jfif','test2','2025-12-02 05:44:34');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -619,4 +652,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-12-01 17:01:40
+-- Dump completed on 2025-12-02 18:20:30
