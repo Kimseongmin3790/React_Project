@@ -531,6 +531,187 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
   const bookmarked = !!post?.isBookmarked;
   const isMyPost = !!(user && post && user.id === (post.userId ?? post.user_id));
 
+  const renderCommentItem = (comment, depth = 0) => {
+    const isMyComment =
+      user && (comment.userId === user.id || comment.user_id === user.id);
+    const likedComment = !!comment.isLiked;
+
+    return (
+      <Box
+        key={comment.id}
+        sx={{
+          mt: depth === 0 ? 1.5 : 1,
+          ml: depth > 0 ? 4 : 0, // depth에 따라 들여쓰기
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+          <Avatar
+            sx={{ width: depth === 0 ? 28 : 24, height: depth === 0 ? 28 : 24, mr: 1 }}
+            src={getMediaUrl(comment.avatarUrl) || ""}
+          >
+            {comment.nickname?.[0] || comment.username?.[0] || "U"}
+          </Avatar>
+
+          <Box sx={{ flex: 1 }}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: "bold", lineHeight: 1.2 }}
+            >
+              {comment.nickname || comment.username}
+            </Typography>
+
+            {/* 내용 / 수정 모드 */}
+            {editingCommentId === comment.id ? (
+              <>
+                <TextField
+                  size="small"
+                  fullWidth
+                  multiline
+                  minRows={1}
+                  value={editingContent}
+                  onChange={(e) => setEditingContent(e.target.value)}
+                  sx={{ mt: 0.5 }}
+                />
+                <Box sx={{ display: "flex", gap: 1, mt: 0.5 }}>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => submitEditComment(comment.id)}
+                    disabled={!editingContent.trim()}
+                  >
+                    저장
+                  </Button>
+                  <Button
+                    variant="text"
+                    size="small"
+                    onClick={cancelEditComment}
+                  >
+                    취소
+                  </Button>
+                </Box>
+              </>
+            ) : (
+              <Typography
+                variant="body2"
+                sx={{
+                  lineHeight: 1.4,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                <CommentRichText text={comment.content} />
+              </Typography>
+            )}
+
+            {/* 하단: 시간 / 좋아요 / 답글 / 수정삭제 */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                mt: 0.5,
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{ color: "text.secondary" }}
+              >
+                {new Date(comment.createdAt).toLocaleString()}
+              </Typography>
+
+              {/* 좋아요 */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.25,
+                }}
+              >
+                <IconButton
+                  size="small"
+                  onClick={() => handleToggleCommentLike(comment)}
+                >
+                  {likedComment ? (
+                    <FavoriteIcon color="error" fontSize="small" />
+                  ) : (
+                    <FavoriteBorderIcon fontSize="small" />
+                  )}
+                </IconButton>
+                <Typography variant="caption">
+                  {comment.likeCount ?? 0}
+                </Typography>
+              </Box>
+
+              {/* 답글 버튼 */}
+              {editingCommentId !== comment.id && (
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() =>
+                    setReplyTarget({
+                      commentId: comment.id,
+                      userId: comment.userId,
+                      username: comment.username,
+                      nickname: comment.nickname || comment.username || "유저",
+                    })
+                  }
+                  sx={{
+                    textTransform: "none",
+                    fontSize: "0.75rem",
+                    px: 0,
+                  }}
+                >
+                  답글
+                </Button>
+              )}
+
+              {/* 내 댓글이면 수정/삭제 */}
+              {isMyComment && editingCommentId !== comment.id && (
+                <>
+                  <Button
+                    size="small"
+                    variant="text"
+                    onClick={() => startEditComment(comment)}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: "0.75rem",
+                      px: 0,
+                    }}
+                  >
+                    수정
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="text"
+                    color="error"
+                    onClick={() => handleDeleteComment(comment.id)}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: "0.75rem",
+                      px: 0,
+                    }}
+                  >
+                    삭제
+                  </Button>
+                </>
+              )}
+            </Box>
+
+            {/* 🔁 재귀적으로 자식 댓글(대댓글, 그 대댓글의 대댓글...) 렌더 */}
+            {comment.replies && comment.replies.length > 0 && (
+              <Box sx={{ mt: 0.5 }}>
+                {comment.replies.map((child) =>
+                  renderCommentItem(child, depth + 1)
+                )}
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </Box>
+    );
+  };
+
   return (
     <>
       <Dialog
@@ -734,351 +915,7 @@ function PostDetailDialog({ open, onClose, postId, onPostUpdated, gameList = [] 
                   <Typography variant="body2">댓글 불러오는 중...</Typography>
                 )}
 
-                {comments.map((c) => {
-                  const isMyComment =
-                    user && (c.userId === user.id || c.user_id === user.id);
-                  const likedComment = !!c.isLiked;
-
-                  return (
-                    <Box key={c.id} sx={{ mt: 1.5 }}>
-                      {/* ───── 최상위 댓글 ───── */}
-                      <Box sx={{ display: "flex", alignItems: "flex-start" }}>
-                        <Avatar
-                          sx={{ width: 28, height: 28, mr: 1 }}
-                          src={getMediaUrl(c.avatarUrl) || ""}
-                        >
-                          {c.nickname?.[0] || c.username?.[0] || "U"}
-                        </Avatar>
-
-                        <Box sx={{ flex: 1 }}>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: "bold", lineHeight: 1.2 }}
-                          >
-                            {c.nickname || c.username}
-                          </Typography>
-
-                          {/* 내용 or 수정 모드 */}
-                          {editingCommentId === c.id ? (
-                            <>
-                              <TextField
-                                size="small"
-                                fullWidth
-                                multiline
-                                minRows={1}
-                                value={editingContent}
-                                onChange={(e) => setEditingContent(e.target.value)}
-                                sx={{ mt: 0.5 }}
-                              />
-                              <Box sx={{ display: "flex", gap: 1, mt: 0.5 }}>
-                                <Button
-                                  variant="contained"
-                                  size="small"
-                                  onClick={() => submitEditComment(c.id)}
-                                  disabled={!editingContent.trim()}
-                                >
-                                  저장
-                                </Button>
-                                <Button
-                                  variant="text"
-                                  size="small"
-                                  onClick={cancelEditComment}
-                                >
-                                  취소
-                                </Button>
-                              </Box>
-                            </>
-                          ) : (
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                lineHeight: 1.4,
-                                whiteSpace: "pre-wrap",
-                                wordBreak: "break-word",
-                                overflowWrap: "anywhere",
-                              }}
-                            >
-                              <CommentRichText text={c.content} />
-                            </Typography>
-                          )}
-
-                          {/* 하단: 시간 / 좋아요 / 답글 / (내 댓글이면 수정/삭제) */}
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              mt: 0.5,
-                            }}
-                          >
-                            <Typography
-                              variant="caption"
-                              sx={{ color: "text.secondary" }}
-                            >
-                              {new Date(c.createdAt).toLocaleString()}
-                            </Typography>
-
-                            {/* 댓글 좋아요 */}
-                            <Box
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 0.25,
-                              }}
-                            >
-                              <IconButton
-                                size="small"
-                                onClick={() => handleToggleCommentLike(c)}
-                              >
-                                {likedComment ? (
-                                  <FavoriteIcon color="error" fontSize="small" />
-                                ) : (
-                                  <FavoriteBorderIcon fontSize="small" />
-                                )}
-                              </IconButton>
-                              <Typography variant="caption">
-                                {c.likeCount ?? 0}
-                              </Typography>
-                            </Box>
-
-                            {/* 답글 버튼 (수정 중일 땐 숨김) */}
-                            {editingCommentId !== c.id && (
-                              <Button
-                                size="small"
-                                variant="text"
-                                onClick={() =>
-                                  setReplyTarget({
-                                    commentId: c.id,
-                                    userId: c.userId,
-                                    username: c.username,
-                                    nickname: c.nickname || c.username || "유저",
-                                  })
-                                }
-                                sx={{
-                                  textTransform: "none",
-                                  fontSize: "0.75rem",
-                                  px: 0,
-                                }}
-                              >
-                                답글
-                              </Button>
-                            )}
-
-                            {/* 내 댓글이면 수정/삭제 (수정 중일 땐 숨김) */}
-                            {isMyComment && editingCommentId !== c.id && (
-                              <>
-                                <Button
-                                  size="small"
-                                  variant="text"
-                                  onClick={() => startEditComment(c)}
-                                  sx={{
-                                    textTransform: "none",
-                                    fontSize: "0.75rem",
-                                    px: 0,
-                                  }}
-                                >
-                                  수정
-                                </Button>
-                                <Button
-                                  size="small"
-                                  variant="text"
-                                  color="error"
-                                  onClick={() => handleDeleteComment(c.id)}
-                                  sx={{
-                                    textTransform: "none",
-                                    fontSize: "0.75rem",
-                                    px: 0,
-                                  }}
-                                >
-                                  삭제
-                                </Button>
-                              </>
-                            )}
-                          </Box>
-                        </Box>
-                      </Box>
-
-                      {/* ───── 대댓글 리스트 ───── */}
-                      {c.replies && c.replies.length > 0 && (
-                        <Box sx={{ mt: 0.5, ml: 4 }}>
-                          {c.replies.map((r) => {
-                            const isMyReply =
-                              user && (r.userId === user.id || r.user_id === user.id);
-                            const likedReply = !!r.isLiked;
-
-                            return (
-                              <Box
-                                key={r.id}
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "flex-start",
-                                  mt: 1,
-                                }}
-                              >
-                                <Avatar
-                                  sx={{ width: 24, height: 24, mr: 1 }}
-                                  src={getMediaUrl(r.avatarUrl) || ""}
-                                >
-                                  {r.nickname?.[0] || r.username?.[0] || "U"}
-                                </Avatar>
-
-                                <Box sx={{ flex: 1 }}>
-                                  <Typography
-                                    variant="body2"
-                                    sx={{ fontWeight: "bold", lineHeight: 1.2 }}
-                                  >
-                                    {r.nickname || r.username}
-                                  </Typography>
-
-                                  {/* 대댓글 내용 or 수정모드 */}
-                                  {editingCommentId === r.id ? (
-                                    <>
-                                      <TextField
-                                        size="small"
-                                        fullWidth
-                                        multiline
-                                        minRows={1}
-                                        value={editingContent}
-                                        onChange={(e) =>
-                                          setEditingContent(e.target.value)
-                                        }
-                                        sx={{ mt: 0.5 }}
-                                      />
-                                      <Box
-                                        sx={{ display: "flex", gap: 1, mt: 0.5 }}
-                                      >
-                                        <Button
-                                          variant="contained"
-                                          size="small"
-                                          onClick={() => submitEditComment(r.id)}
-                                          disabled={!editingContent.trim()}
-                                        >
-                                          저장
-                                        </Button>
-                                        <Button
-                                          variant="text"
-                                          size="small"
-                                          onClick={cancelEditComment}
-                                        >
-                                          취소
-                                        </Button>
-                                      </Box>
-                                    </>
-                                  ) : (
-                                    <Typography
-                                      variant="body2"
-                                      sx={{
-                                        lineHeight: 1.4,
-                                        whiteSpace: "pre-wrap",
-                                        wordBreak: "break-word",
-                                        overflowWrap: "anywhere",
-                                      }}
-                                    >
-                                      <CommentRichText text={r.content} />
-                                    </Typography>
-                                  )}
-
-                                  <Box
-                                    sx={{
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: 1,
-                                      mt: 0.5,
-                                    }}
-                                  >
-                                    <Typography
-                                      variant="caption"
-                                      sx={{ color: "text.secondary" }}
-                                    >
-                                      {new Date(r.createdAt).toLocaleString()}
-                                    </Typography>
-
-                                    {/* 대댓글 좋아요 */}
-                                    <Box
-                                      sx={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 0.25,
-                                      }}
-                                    >
-                                      <IconButton
-                                        size="small"
-                                        onClick={() => handleToggleCommentLike(r)}
-                                      >
-                                        {likedReply ? (
-                                          <FavoriteIcon color="error" fontSize="small" />
-                                        ) : (
-                                          <FavoriteBorderIcon fontSize="small" />
-                                        )}
-                                      </IconButton>
-                                      <Typography variant="caption">
-                                        {r.likeCount ?? 0}
-                                      </Typography>
-                                    </Box>
-
-                                    {/* 대댓글에 답글 */}
-                                    {editingCommentId !== r.id && (
-                                      <Button
-                                        size="small"
-                                        variant="text"
-                                        onClick={() =>
-                                          setReplyTarget({
-                                            commentId: r.id,
-                                            userId: r.userId,
-                                            username: r.username,
-                                            nickname: r.nickname || r.username || "유저",
-                                          })
-                                        }
-                                        sx={{
-                                          textTransform: "none",
-                                          fontSize: "0.75rem",
-                                          px: 0,
-                                        }}
-                                      >
-                                        답글
-                                      </Button>
-                                    )}
-
-                                    {/* 내 대댓글이라면 수정/삭제 */}
-                                    {isMyReply && editingCommentId !== r.id && (
-                                      <>
-                                        <Button
-                                          size="small"
-                                          variant="text"
-                                          onClick={() => startEditComment(r)}
-                                          sx={{
-                                            textTransform: "none",
-                                            fontSize: "0.75rem",
-                                            px: 0,
-                                          }}
-                                        >
-                                          수정
-                                        </Button>
-                                        <Button
-                                          size="small"
-                                          variant="text"
-                                          color="error"
-                                          onClick={() => handleDeleteComment(r.id)}
-                                          sx={{
-                                            textTransform: "none",
-                                            fontSize: "0.75rem",
-                                            px: 0,
-                                          }}
-                                        >
-                                          삭제
-                                        </Button>
-                                      </>
-                                    )}
-                                  </Box>
-                                </Box>
-                              </Box>
-                            );
-                          })}
-                        </Box>
-                      )}
-                    </Box>
-                  );
-                })}
+                {commentTree.map((c) => renderCommentItem(c, 0))}
 
                 {/* 댓글 입력 */}
                 <Stack

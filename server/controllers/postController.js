@@ -386,19 +386,25 @@ exports.getComments = async (req, res) => {
     const [rows] = await db.execute(
       `
       SELECT
-        c.id,
-        c.post_id AS postId,
-        c.user_id AS userId,
-        c.parent_comment_id AS parentCommentId,
-        c.content,
-        c.created_at AS createdAt,
+        pc.id,
+        pc.post_id AS postId,
+        pc.user_id AS userId,
+        pc.parent_comment_id AS parentCommentId,
+        pc.content,
+        pc.created_at AS createdAt,
         u.username,
         u.nickname,
-        u.avatar_url AS avatarUrl
-      FROM post_comments c
-      JOIN users u ON c.user_id = u.id
-      WHERE c.post_id = ?
-      ORDER BY c.created_at ASC
+        u.avatar_url AS avatarUrl,
+        IFNULL(cl.cnt, 0) AS likeCount
+      FROM post_comments pc
+      JOIN users u ON u.id = pc.user_id
+      LEFT JOIN (
+        SELECT comment_id, COUNT(*) AS cnt
+        FROM comment_likes
+        GROUP BY comment_id
+      ) cl ON cl.comment_id = pc.id
+      WHERE pc.post_id = ?
+      ORDER BY pc.created_at ASC
       `,
       [postId]
     );
